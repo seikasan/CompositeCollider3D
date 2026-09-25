@@ -46,6 +46,8 @@ namespace CompositeCollider3D
         [NonSerialized] private Task<RawResult> _generationTask;
         [NonSerialized] private string _runningHash;
         [NonSerialized] private bool _retryAfterCurrent;
+        [NonSerialized] private long _startedTicks;
+        [NonSerialized] private long _captureMilliseconds;
 
         public bool IsGeometryGenerationRunning => _generationTask != null;
 
@@ -60,9 +62,11 @@ namespace CompositeCollider3D
             string hash = null;
             try
             {
+                _startedTicks = Stopwatch.GetTimestamp();
                 hash = ComputeGenerationHash();
 
                 var snapshot = CaptureSnapshot();
+                _captureMilliseconds = ElapsedMilliseconds(_startedTicks);
                 _runningHash = hash;
                 _lastFailedHash = null;
                 _generationTask = Task.Run(() => ComputeRaw(snapshot));
@@ -103,6 +107,7 @@ namespace CompositeCollider3D
 
                 try
                 {
+                    long applyStarted = Stopwatch.GetTimestamp();
                     merged = ToUnityMesh(result.Merged, "Composite3D Result");
 
                     if (result.Hulls != null)
@@ -115,7 +120,11 @@ namespace CompositeCollider3D
                     }
 
                     CommitGeneratedMeshes(merged, hulls, completedHash);
-                    UnityEngine.Debug.Log($"CompositeCollider3D background calculation: Boolean {result.BooleanMilliseconds} ms, CoACD {result.DecompositionMilliseconds} ms.", this);
+                    UnityEngine.Debug.Log(
+                        $"CompositeCollider3D generation: total {ElapsedMilliseconds(_startedTicks)} ms " +
+                        $"(capture {_captureMilliseconds} ms, Boolean {result.BooleanMilliseconds} ms, " +
+                        $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {ElapsedMilliseconds(applyStarted)} ms); " +
+                        $"result {merged.triangles.Length / 3} triangles, {hulls?.Count ?? 0} convex parts.", this);
                 }
                 catch
                 {
@@ -148,6 +157,9 @@ namespace CompositeCollider3D
             RequestGeometryGeneration();
         }
 #endif
+
+        private static long ElapsedMilliseconds(long startTicks) =>
+            (Stopwatch.GetTimestamp() - startTicks) * 1000 / Stopwatch.Frequency;
 
         private GenerationSnapshot CaptureSnapshot()
         {

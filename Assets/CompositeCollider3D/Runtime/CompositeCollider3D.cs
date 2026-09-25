@@ -106,6 +106,7 @@ namespace CompositeCollider3D
             string hash = null;
             try
             {
+                long started = System.Diagnostics.Stopwatch.GetTimestamp();
                 if (_sources == null || _sources.Length < 2)
                 {
                     throw new InvalidOperationException("At least two Collider sources are required.");
@@ -113,7 +114,10 @@ namespace CompositeCollider3D
 
                 hash = ComputeGenerationHash();
 
-                RawResult result = ComputeRaw(CaptureSnapshot());
+                GenerationSnapshot snapshot = CaptureSnapshot();
+                long captureMs = ElapsedMilliseconds(started);
+                RawResult result = ComputeRaw(snapshot);
+                long applyStarted = System.Diagnostics.Stopwatch.GetTimestamp();
                 nextMerged = ToUnityMesh(result.Merged, "Composite3D Result");
 
                 if (result.Hulls != null)
@@ -126,6 +130,11 @@ namespace CompositeCollider3D
                 }
 
                 CommitGeneratedMeshes(nextMerged, nextHulls, hash);
+                Debug.Log(
+                    $"CompositeCollider3D generation: total {ElapsedMilliseconds(started)} ms " +
+                    $"(capture {captureMs} ms, Boolean {result.BooleanMilliseconds} ms, " +
+                    $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {ElapsedMilliseconds(applyStarted)} ms); " +
+                    $"result {nextMerged.triangles.Length / 3} triangles, {nextHulls?.Count ?? 0} convex parts.", this);
             }
             catch (Exception e)
             {
@@ -225,9 +234,6 @@ namespace CompositeCollider3D
                     }
                 }
 
-                Debug.Log(
-                    $"CompositeCollider3D: processed {_sources.Length} solids into {nextMerged.triangles.Length / 3} triangles; convex parts: {nextHulls?.Count ?? 0}.",
-                    this);
             }
             catch
             {
