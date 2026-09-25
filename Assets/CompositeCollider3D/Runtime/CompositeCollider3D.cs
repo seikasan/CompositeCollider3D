@@ -30,9 +30,8 @@ namespace CompositeCollider3D
         [Serializable]
         public struct SourceEntry
         {
+            [Tooltip("直接指定したColliderはMergeで結合します。")]
             public Collider collider;
-            [Tooltip("最初の要素では使用しません。2番目以降は、それまでの結果に対する演算です。")]
-            public BooleanOperation operation;
             [Tooltip("指定した場合、ColliderとOperationはこのSourceコンポーネントから読み取ります。")]
             public CompositeColliderSource3D source;
         }
@@ -243,10 +242,14 @@ namespace CompositeCollider3D
         }
 
         private static Collider ResolveCollider(SourceEntry entry) =>
-            entry.source != null ? entry.source.SourceCollider : entry.collider;
+            entry.source != null
+                ? entry.source.SourceCollider
+                : entry.collider;
 
         private static BooleanOperation ResolveOperation(SourceEntry entry) =>
-            entry.source != null ? entry.source.Operation : entry.operation;
+            entry.source != null
+                ? entry.source.Operation
+                : BooleanOperation.Merge;
 
         public Mesh[] GetGeneratedMeshes() => _generatedMeshes.ToArray();
 
@@ -584,8 +587,8 @@ namespace CompositeCollider3D
                 name = meshName,
                 indexFormat =
                     vertices.Length > 65535
-                    ? IndexFormat.UInt32
-                    : IndexFormat.UInt16
+                        ? IndexFormat.UInt32
+                        : IndexFormat.UInt16
             };
 
             mesh.vertices = vertices;

@@ -40,7 +40,6 @@ namespace CompositeCollider3D.Editor
                     SerializedProperty entry = entries.GetArrayElementAtIndex(i);
                     entry.FindPropertyRelative("source").objectReferenceValue = children[i];
                     entry.FindPropertyRelative("collider").objectReferenceValue = null;
-                    entry.FindPropertyRelative("operation").enumValueIndex = 0;
                 }
                 serializedObject.ApplyModifiedProperties();
             }
@@ -146,23 +145,10 @@ namespace CompositeCollider3D.Editor
             EditorGUI.PropertyField(first, source, label);
             if (source.objectReferenceValue == null)
             {
-                float split = second.width * 0.63f;
                 EditorGUI.PropertyField(
-                    new Rect(
-                        second.x,
-                        second.y,
-                        split - 3f,
-                        line),
+                    second,
                     property.FindPropertyRelative("collider"),
-                    new GUIContent("Collider"));
-                EditorGUI.PropertyField(
-                    new Rect(
-                        second.x + split,
-                        second.y,
-                        second.width - split,
-                        line),
-                    property.FindPropertyRelative("operation"),
-                    new GUIContent("Op"));
+                    new GUIContent("Collider (Merge)"));
             }
             else
             {
