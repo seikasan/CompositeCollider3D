@@ -257,7 +257,7 @@ namespace CompositeCollider3D
             hash.Append((int)_representation);
             if (_representation == CollisionRepresentation.DynamicConvex)
             {
-                hash.Append(Mathf.Clamp(_coacdThreshold, 0.01f, 1f));
+                hash.Append((float)SafeCoacdThreshold(_coacdThreshold));
                 hash.Append(Mathf.Clamp(_coacdSampleResolution, 1000, 10000));
                 hash.Append(Mathf.Clamp(_coacdMctsIteration, 60, 2000));
             }

@@ -161,6 +161,12 @@ namespace CompositeCollider3D
         private static long ElapsedMilliseconds(long startTicks) =>
             (Stopwatch.GetTimestamp() - startTicks) * 1000 / Stopwatch.Frequency;
 
+        private static double SafeCoacdThreshold(float value)
+        {
+            if (float.IsNaN(value)) return 0.05d;
+            return Math.Max(0.01d, Math.Min(1d, (double)value));
+        }
+
         private void RecordGeneration(RawResult result, long totalMs, long captureMs, long applyMs,
             Mesh merged, List<Mesh> hulls)
         {
@@ -195,7 +201,7 @@ namespace CompositeCollider3D
             {
                 Sources = sources,
                 Dynamic = _representation == CollisionRepresentation.DynamicConvex,
-                CoacdThreshold = Mathf.Clamp(_coacdThreshold, 0.01f, 1f),
+                CoacdThreshold = SafeCoacdThreshold(_coacdThreshold),
                 CoacdSampleResolution = Mathf.Clamp(_coacdSampleResolution, 1000, 10000),
                 CoacdMctsIteration = Mathf.Clamp(_coacdMctsIteration, 60, 2000)
             };
@@ -457,6 +463,13 @@ namespace CompositeCollider3D
 
             public static RawMesh[] Decompose(RawMesh mesh, double threshold, int sampleResolution, int mctsIteration)
             {
+                if (double.IsNaN(threshold) || double.IsInfinity(threshold) || threshold < 0.01d || threshold > 1d ||
+                    sampleResolution < 1000 || sampleResolution > 10000 ||
+                    mctsIteration < 60 || mctsIteration > 2000)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(threshold), "CoACD parameters are outside supported bounds.");
+                }
+
                 var doubles = new double[mesh.Positions.Length];
 
                 for (int i = 0; i < doubles.Length; i++)
