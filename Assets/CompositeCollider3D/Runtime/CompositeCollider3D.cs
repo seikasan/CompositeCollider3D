@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using ManifoldNET;
 using UnityEngine;
-using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
@@ -13,12 +11,12 @@ namespace CompositeCollider3D
     /// Colliderの閉じた立体を順序どおりにBoolean演算し、物理用Colliderを生成します。
     /// </summary>
     [ExecuteAlways]
-    public sealed class CompositeCollider3D : MonoBehaviour
+    public sealed partial class CompositeCollider3D : MonoBehaviour
     {
         public enum GenerationType
         {
             Manual,
-            Synchronous
+            Automatic
         }
 
         public enum CollisionRepresentation
@@ -50,10 +48,6 @@ namespace CompositeCollider3D
         [SerializeField] private LayerMask _includeLayers;
         [SerializeField] private LayerMask _excludeLayers;
         [SerializeField] private int _layerOverridePriority;
-        [SerializeField] private bool _showDebugWireframes = true;
-        [SerializeField] private Color _sourceColor = new(0.2f, 0.7f, 1f, 0.6f);
-        [SerializeField] private Color _mergedColor = new(0.2f, 1f, 0.3f, 0.8f);
-        [SerializeField] private Color _hullColor = new(1f, 0.5f, 0.1f, 0.8f);
 
         [SerializeField, HideInInspector] private List<Mesh> _generatedMeshes = new();
         [SerializeField, HideInInspector] private GameObject _generatedRoot;
@@ -68,19 +62,30 @@ namespace CompositeCollider3D
         private void Update()
         {
             if (Application.IsPlaying(gameObject)) return;
+
+            PollGeometryGeneration();
+
             if (_settingsDirty || _lastAppliedLayer != gameObject.layer)
             {
                 ApplyColliderSettings();
                 _settingsDirty = false;
                 _lastAppliedLayer = gameObject.layer;
             }
-            if (_generationType != GenerationType.Synchronous ||
-                _sources == null || _sources.Length < 2)
+
+            if (_generationType != GenerationType.Automatic ||
+                _sources == null ||
+                _sources.Length < 2)
+            {
                 return;
+            }
 
             string hash = ComputeGenerationHash();
-            if (hash != _lastFailedHash && (hash != _lastGeneratedHash || !HasGeneratedColliders()))
-                GenerateGeometry();
+            if (_generationTask == null &&
+                hash != _lastFailedHash &&
+                (hash != _lastGeneratedHash || !HasGeneratedColliders()))
+            {
+                RequestGeometryGeneration();
+            }
         }
 
         private void OnValidate() => _settingsDirty = true;
@@ -89,6 +94,13 @@ namespace CompositeCollider3D
         [ContextMenu("Generate Geometry")]
         public void GenerateGeometry()
         {
+#if UNITY_EDITOR
+            if (_generationTask != null)
+            {
+                Debug.LogWarning("CompositeCollider3D generation is already running. Wait for it to finish before calling GenerateGeometry().", this);
+                return;
+            }
+#endif
             Mesh nextMerged = null;
             List<Mesh> nextHulls = null;
             string hash = null;
@@ -101,163 +113,19 @@ namespace CompositeCollider3D
 
                 hash = ComputeGenerationHash();
 
-                using Manifold first = MakeSolid(ResolveCollider(_sources[0]));
-                Manifold accumulated = first;
+                RawResult result = ComputeRaw(CaptureSnapshot());
+                nextMerged = ToUnityMesh(result.Merged, "Composite3D Result");
 
-                bool ownsAccumulated = false;
-                try
+                if (result.Hulls != null)
                 {
-                    for (int i = 1; i < _sources.Length; i++)
+                    nextHulls = new List<Mesh>(result.Hulls.Length);
+                    for (int i = 0; i < result.Hulls.Length; i++)
                     {
-                        using Manifold next = MakeSolid(ResolveCollider(_sources[i]));
-                        BooleanOperation operation = ResolveOperation(_sources[i]);
-                        Manifold operationResult = operation switch
-                        {
-                            BooleanOperation.Merge => accumulated + next,
-                            BooleanOperation.Difference => accumulated - next,
-                            BooleanOperation.Intersect => accumulated & next,
-                            _ => throw new InvalidOperationException("Unsupported Boolean operation.")
-                        };
-
-                        if (ownsAccumulated)
-                        {
-                            accumulated.Dispose();
-                        }
-
-                        accumulated = operationResult;
-                        ownsAccumulated = true;
-
-                        if (operationResult.Status != ManifoldError.NoError || operationResult.IsEmpty)
-                        {
-                            throw new InvalidOperationException($"Boolean operation {i} ({operation}) failed or produced an empty solid: {operationResult.Status}");
-                        }
-                    }
-
-                    float volume = accumulated.Properties.volume;
-                    if (float.IsNaN(volume) || float.IsInfinity(volume) || volume <= 0f)
-                    {
-                        throw new InvalidOperationException($"Boolean result has invalid volume: {volume}.");
-                    }
-
-                    using MeshGL result = accumulated.MeshGL;
-                    nextMerged = ToUnityMesh(result, "Composite3D Result");
-                }
-                finally
-                {
-                    if (ownsAccumulated)
-                    {
-                        accumulated.Dispose();
+                        nextHulls.Add(ToUnityMesh(result.Hulls[i], $"Convex {i}"));
                     }
                 }
 
-                if (_representation == CollisionRepresentation.DynamicConvex)
-                {
-                    var decomposer = gameObject.AddComponent<CoACD>();
-                    try
-                    {
-                        nextHulls = decomposer.RunACD(nextMerged);
-                    }
-                    finally
-                    {
-                        DisposeUnityObject(decomposer);
-                    }
-
-                    if (nextHulls == null || nextHulls.Count == 0)
-                    {
-                        throw new InvalidOperationException("CoACD produced no convex parts.");
-                    }
-
-                    foreach (Mesh hull in nextHulls)
-                    {
-                        if (hull == null || hull.triangles.Length == 0 || hull.triangles.Length / 3 > 255)
-                        {
-                            throw new InvalidOperationException("A CoACD part is empty or exceeds 255 triangles.");
-                        }
-                    }
-                }
-
-                var stagedRoot = new GameObject("CompositeCollider3D Generated");
-                stagedRoot.transform.SetParent(transform, false);
-                stagedRoot.SetActive(false);
-
-                try
-                {
-                    if (nextHulls == null)
-                    {
-                        AddCollider(stagedRoot, nextMerged, false);
-                    }
-                    else
-                    {
-                        for (int i = 0; i < nextHulls.Count; i++)
-                        {
-                            var part = new GameObject("Convex " + i);
-                            part.transform.SetParent(stagedRoot.transform, false);
-                            AddCollider(part, nextHulls[i], true);
-                        }
-                    }
-
-                    if (_representation == CollisionRepresentation.DynamicConvex)
-                    {
-                        var body = GetComponent<Rigidbody>();
-                        if (body == null)
-                        {
-                            body = gameObject.AddComponent<Rigidbody>();
-                        }
-                        body.isKinematic = false;
-                    }
-                    else if (TryGetComponent<Rigidbody>(out var body) && !body.isKinematic)
-                    {
-                        throw new InvalidOperationException("StaticConcave requires no dynamic Rigidbody.");
-                    }
-
-                    foreach (SourceEntry entry in _sources)
-                    {
-                        ResolveCollider(entry).enabled = false;
-                    }
-
-                    GameObject previousRoot = _generatedRoot;
-                    var previousMeshes = new List<Mesh>(_generatedMeshes);
-                    bool previousMeshesAreSavedAssets = _generatedMeshesAreSavedAssets;
-
-                    _generatedRoot = stagedRoot;
-                    _mergedMesh = nextMerged;
-                    _generatedMeshesAreSavedAssets = false;
-                    _lastGeneratedHash = hash;
-                    _lastFailedHash = null;
-                    _lastAppliedLayer = gameObject.layer;
-                    _generatedMeshes.Clear();
-                    _generatedMeshes.Add(nextMerged);
-
-                    if (nextHulls != null)
-                    {
-                        _generatedMeshes.AddRange(nextHulls);
-                    }
-
-                    stagedRoot.SetActive(true);
-
-                    if (previousRoot != null)
-                    {
-                        previousRoot.SetActive(false);
-                        DisposeUnityObject(previousRoot);
-                    }
-
-                    if (!previousMeshesAreSavedAssets)
-                    {
-                        foreach (Mesh oldMesh in previousMeshes)
-                        {
-                            DisposeUnityObject(oldMesh);
-                        }
-                    }
-
-                    Debug.Log(
-                        $"CompositeCollider3D: processed {_sources.Length} solids into {nextMerged.triangles.Length / 3} triangles; convex parts: {nextHulls?.Count ?? 0}.",
-                        this);
-                }
-                catch
-                {
-                    DisposeUnityObject(stagedRoot);
-                    throw;
-                }
+                CommitGeneratedMeshes(nextMerged, nextHulls, hash);
             }
             catch (Exception e)
             {
@@ -282,26 +150,125 @@ namespace CompositeCollider3D
             }
         }
 
+        private void CommitGeneratedMeshes(Mesh nextMerged, List<Mesh> nextHulls, string hash)
+        {
+            var stagedRoot = new GameObject("CompositeCollider3D Generated");
+            stagedRoot.transform.SetParent(transform, false);
+            stagedRoot.SetActive(false);
+
+            try
+            {
+                if (nextHulls == null)
+                {
+                    AddCollider(stagedRoot, nextMerged, false);
+                }
+                else
+                {
+                    for (int i = 0; i < nextHulls.Count; i++)
+                    {
+                        var part = new GameObject($"Convex {i}");
+                        part.transform.SetParent(stagedRoot.transform, false);
+                        AddCollider(part, nextHulls[i], true);
+                    }
+                }
+
+                if (_representation == CollisionRepresentation.DynamicConvex)
+                {
+                    var rb = GetComponent<Rigidbody>();
+                    if (rb == null)
+                    {
+                        rb = gameObject.AddComponent<Rigidbody>();
+                    }
+                    rb.isKinematic = false;
+                }
+                else if (TryGetComponent<Rigidbody>(out var rb) && !rb.isKinematic)
+                {
+                    throw new InvalidOperationException("StaticConcave requires no dynamic Rigidbody.");
+                }
+
+                foreach (SourceEntry entry in _sources)
+                {
+                    ResolveCollider(entry).enabled = false;
+                }
+
+                GameObject previousRoot = _generatedRoot;
+                var previousMeshes = new List<Mesh>(_generatedMeshes);
+                bool previousMeshesAreSavedAssets = _generatedMeshesAreSavedAssets;
+
+                _generatedRoot = stagedRoot;
+                _mergedMesh = nextMerged;
+                _generatedMeshesAreSavedAssets = false;
+                _lastGeneratedHash = hash;
+                _lastFailedHash = null;
+                _lastAppliedLayer = gameObject.layer;
+                _generatedMeshes.Clear();
+                _generatedMeshes.Add(nextMerged);
+
+                if (nextHulls != null)
+                {
+                    _generatedMeshes.AddRange(nextHulls);
+                }
+
+                stagedRoot.SetActive(true);
+
+                if (previousRoot != null)
+                {
+                    previousRoot.SetActive(false);
+                    DisposeUnityObject(previousRoot);
+                }
+
+                if (!previousMeshesAreSavedAssets)
+                {
+                    foreach (Mesh oldMesh in previousMeshes)
+                    {
+                        DisposeUnityObject(oldMesh);
+                    }
+                }
+
+                Debug.Log(
+                    $"CompositeCollider3D: processed {_sources.Length} solids into {nextMerged.triangles.Length / 3} triangles; convex parts: {nextHulls?.Count ?? 0}.",
+                    this);
+            }
+            catch
+            {
+                DisposeUnityObject(stagedRoot);
+                throw;
+            }
+
+        }
+
         private bool HasGeneratedColliders()
         {
-            return _generatedRoot != null && _generatedMeshes != null && _generatedMeshes.Count > 0;
+            return _generatedRoot != null && _generatedMeshes is { Count: > 0 };
         }
 
         private string ComputeGenerationHash()
         {
             var hash = new Hash128();
+
             hash.Append((int)_representation);
             hash.Append(_sources?.Length ?? 0);
-            if (_sources == null) return hash.ToString();
+
+            if (_sources == null)
+            {
+                return hash.ToString();
+            }
 
             for (int i = 0; i < _sources.Length; i++)
             {
                 Collider source = ResolveCollider(_sources[i]);
+
                 hash.Append(i == 0 ? 0 : (int)ResolveOperation(_sources[i]));
                 hash.Append(source != null ? source.GetType().FullName : "missing");
+
                 if (source == null) continue;
+
                 Matrix4x4 relative = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
-                for (int j = 0; j < 16; j++) hash.Append(Mathf.Round(relative[j] * 100000f) / 100000f);
+
+                for (int j = 0; j < 16; j++)
+                {
+                    hash.Append(Mathf.Round(relative[j] * 100000f) / 100000f);
+                }
 
                 switch (source)
                 {
@@ -316,7 +283,10 @@ namespace CompositeCollider3D
                             }
                             catch (UnityException) { hash.Append(-1); }
                         }
-                        else hash.Append(-1);
+                        else
+                        {
+                            hash.Append(-1);
+                        }
                         break;
                     case BoxCollider box:
                         AppendVector(ref hash, box.center);
@@ -352,13 +322,14 @@ namespace CompositeCollider3D
         private void ApplyColliderSettings()
         {
             if (_generatedRoot == null) return;
-            foreach (MeshCollider collider in _generatedRoot.GetComponentsInChildren<MeshCollider>(true))
+
+            foreach (MeshCollider col in _generatedRoot.GetComponentsInChildren<MeshCollider>(true))
             {
-                collider.sharedMaterial = _material;
-                collider.includeLayers = _includeLayers;
-                collider.excludeLayers = _excludeLayers;
-                collider.layerOverridePriority = _layerOverridePriority;
-                collider.gameObject.layer = gameObject.layer;
+                col.sharedMaterial = _material;
+                col.includeLayers = _includeLayers;
+                col.excludeLayers = _excludeLayers;
+                col.layerOverridePriority = _layerOverridePriority;
+                col.gameObject.layer = gameObject.layer;
             }
         }
 
@@ -424,89 +395,10 @@ namespace CompositeCollider3D
             }
         }
 
-        private Manifold MakeSolid(Collider source)
-        {
-            if (source == null)
-            {
-                throw new InvalidOperationException("A source Collider is missing.");
-            }
-
-            Vector3[] vertices;
-            int[] triangles;
-            Matrix4x4 matrix;
-
-            switch (source)
-            {
-                case MeshCollider meshCollider:
-                {
-                    if (meshCollider.sharedMesh == null)
-                    {
-                        throw new InvalidOperationException($"{source.name}: MeshCollider has no mesh.");
-                    }
-
-                    vertices = meshCollider.sharedMesh.vertices;
-                    triangles = meshCollider.sharedMesh.triangles;
-                    matrix = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
-                    break;
-                }
-                case BoxCollider box:
-                    MakeBox(box, out vertices, out triangles);
-                    matrix = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
-                    break;
-                case SphereCollider sphere:
-                    MakeSphere(sphere, out vertices, out triangles);
-                    matrix = transform.worldToLocalMatrix;
-                    break;
-                case CapsuleCollider capsule:
-                    MakeCapsule(capsule, out vertices, out triangles);
-                    matrix = transform.worldToLocalMatrix;
-                    break;
-                default:
-                {
-                    throw new InvalidOperationException($"{source.name}: unsupported Collider type {source.GetType().Name}.");
-                }
-            }
-
-            if (vertices.Length < 4 || triangles.Length < 12)
-            {
-                throw new InvalidOperationException($"{source.name}: mesh is too small for a closed solid.");
-            }
-
-            var positions = new float[vertices.Length * 3];
-
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                Vector3 p = matrix.MultiplyPoint3x4(vertices[i]);
-                positions[i * 3] = p.x;
-                positions[i * 3 + 1] = p.y;
-                positions[i * 3 + 2] = p.z;
-            }
-
-            var indices = new uint[triangles.Length];
-            bool mirrored = matrix.determinant < 0f;
-
-            for (int i = 0; i < triangles.Length; i += 3)
-            {
-                indices[i] = (uint)triangles[i];
-                indices[i + 1] = (uint)triangles[i + (mirrored ? 2 : 1)];
-                indices[i + 2] = (uint)triangles[i + (mirrored ? 1 : 2)];
-            }
-
-            using var input = new MeshGL(positions, indices);
-            
-            Manifold solid = Manifold.Create(input);
-
-            if (solid.Status != ManifoldError.NoError || solid.IsEmpty)
-            {
-                ManifoldError error = solid.Status;
-                solid.Dispose();
-                throw new InvalidOperationException($"{source.name}: invalid closed mesh ({error}).");
-            }
-
-            return solid;
-        }
-
-        private static void MakeBox(BoxCollider box, out Vector3[] vertices, out int[] triangles)
+        private static void MakeBox(
+            BoxCollider box,
+            out Vector3[] vertices,
+            out int[] triangles)
         {
             Vector3 c = box.center;
             Vector3 h = box.size * 0.5f;
@@ -532,7 +424,10 @@ namespace CompositeCollider3D
             };
         }
 
-        private static void MakeSphere(SphereCollider sphere, out Vector3[] vertices, out int[] triangles)
+        private static void MakeSphere(
+            SphereCollider sphere,
+            out Vector3[] vertices,
+            out int[] triangles)
         {
             float radius = sphere.radius * MaxAbs(sphere.transform.lossyScale);
 
@@ -542,10 +437,19 @@ namespace CompositeCollider3D
             }
 
             Vector3 center = sphere.transform.TransformPoint(sphere.center);
-            MakeRevolved(center, Quaternion.identity, radius, 0f, out vertices, out triangles);
+            MakeRevolved(
+                center,
+                Quaternion.identity,
+                radius,
+                0f,
+                out vertices,
+                out triangles);
         }
 
-        private static void MakeCapsule(CapsuleCollider capsule, out Vector3[] vertices, out int[] triangles)
+        private static void MakeCapsule(
+            CapsuleCollider capsule,
+            out Vector3[] vertices,
+            out int[] triangles)
         {
             Vector3 scale = capsule.transform.lossyScale;
             Vector3 axis;
@@ -581,8 +485,13 @@ namespace CompositeCollider3D
             }
 
             Vector3 center = capsule.transform.TransformPoint(capsule.center);
-            MakeRevolved(center, Quaternion.FromToRotation(Vector3.up, axis), radius,
-                height * 0.5f - radius, out vertices, out triangles);
+            MakeRevolved(
+                center,
+                Quaternion.FromToRotation(Vector3.up, axis),
+                radius,
+                height * 0.5f - radius,
+                out vertices,
+                out triangles);
         }
 
         private static float MaxAbs(Vector3 value) =>
@@ -682,45 +591,10 @@ namespace CompositeCollider3D
             triangles = faces.ToArray();
         }
 
-        private static Mesh ToUnityMesh(MeshGL data, string meshName)
-        {
-            float[] properties = data.VerticesProperties;
-            int[] indices = data.TriangleVertices;
-
-            if (properties == null || indices == null || data.PropertiesNumber < 3)
-            {
-                throw new InvalidOperationException("Manifold returned invalid mesh data.");
-            }
-
-            var vertices = new Vector3[data.VerticesNumber];
-            int stride = data.PropertiesNumber;
-
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                vertices[i] = new Vector3(
-                    properties[i * stride],
-                    properties[i * stride + 1],
-                    properties[i * stride + 2]);
-            }
-
-            var mesh = new Mesh
-            {
-                name = meshName,
-                indexFormat =
-                    vertices.Length > 65535
-                        ? IndexFormat.UInt32
-                        : IndexFormat.UInt16
-            };
-
-            mesh.vertices = vertices;
-            mesh.triangles = indices;
-            mesh.RecalculateBounds();
-            mesh.RecalculateNormals();
-
-            return mesh;
-        }
-
-        private void AddCollider(GameObject owner, Mesh mesh, bool convex)
+        private void AddCollider(
+            GameObject owner,
+            Mesh mesh,
+            bool convex)
         {
             var col = owner.AddComponent<MeshCollider>();
             col.convex = convex;
@@ -748,87 +622,6 @@ namespace CompositeCollider3D
             {
                 DestroyImmediate(obj);
             }
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            if (!_showDebugWireframes) return;
-
-            if (_sources != null)
-            {
-                foreach (SourceEntry entry in _sources)
-                {
-                    Collider source = ResolveCollider(entry);
-                    if (source is MeshCollider meshSource && meshSource.sharedMesh != null)
-                    {
-                        Gizmos.color = _sourceColor;
-                        Gizmos.matrix = source.transform.localToWorldMatrix;
-                        Gizmos.DrawWireMesh(meshSource.sharedMesh);
-                    }
-                    else if (source is BoxCollider box)
-                    {
-                        Gizmos.color = _sourceColor;
-                        Gizmos.matrix = source.transform.localToWorldMatrix;
-                        Gizmos.DrawWireCube(box.center, box.size);
-                    }
-                    else if (source is SphereCollider sphere)
-                    {
-                        Gizmos.color = _sourceColor;
-                        Gizmos.matrix = Matrix4x4.identity;
-                        Gizmos.DrawWireSphere(source.transform.TransformPoint(sphere.center), sphere.radius * MaxAbs(source.transform.lossyScale));
-                    }
-                    else if (source is CapsuleCollider capsule)
-                    {
-                        Vector3 scale = source.transform.lossyScale;
-                        Vector3 axis = source.transform.rotation *
-                            (capsule.direction switch
-                            {
-                                0 => Vector3.right,
-                                2 => Vector3.forward,
-                                _ => Vector3.up
-                            });
-
-                        float axisScale = capsule.direction switch
-                        {
-                            0 => Mathf.Abs(scale.x),
-                            2 => Mathf.Abs(scale.z),
-                            _ => Mathf.Abs(scale.y)
-                        };
-
-                        float radialScale = capsule.direction switch
-                        {
-                            0 => Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)),
-                            2 => Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)),
-                            _ => Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z))
-                        };
-
-                        float radius = capsule.radius * radialScale;
-                        float half = Mathf.Max(0f, capsule.height * axisScale * 0.5f - radius);
-                        Vector3 center = source.transform.TransformPoint(capsule.center);
-                        Gizmos.color = _sourceColor;
-                        Gizmos.matrix = Matrix4x4.identity;
-                        Gizmos.DrawWireSphere(center + axis * half, radius);
-                        Gizmos.DrawWireSphere(center - axis * half, radius);
-                    }
-                }
-            }
-
-            Gizmos.matrix = transform.localToWorldMatrix;
-            if (_mergedMesh != null)
-            {
-                Gizmos.color = _mergedColor;
-                Gizmos.DrawWireMesh(_mergedMesh);
-            }
-
-            Gizmos.color = _hullColor;
-            for (int i = 1; i < _generatedMeshes.Count; i++)
-            {
-                if (_generatedMeshes[i] != null)
-                {
-                    Gizmos.DrawWireMesh(_generatedMeshes[i]);
-                }
-            }
-            Gizmos.matrix = Matrix4x4.identity;
         }
     }
 }

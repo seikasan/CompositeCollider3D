@@ -20,13 +20,14 @@ namespace CompositeCollider3D.Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_includeLayers"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_excludeLayers"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_layerOverridePriority"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_showDebugWireframes"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sourceColor"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_mergedColor"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_hullColor"));
             serializedObject.ApplyModifiedProperties();
 
             var composite = (Composite)target;
+            if (composite.IsGeometryGenerationRunning)
+            {
+                EditorGUILayout.HelpBox("Generating geometry in the background. The previous Collider remains active until completion.", MessageType.Info);
+                Repaint();
+            }
 
             if (GUILayout.Button("Use Child Sources"))
             {
@@ -47,7 +48,7 @@ namespace CompositeCollider3D.Editor
 
             if (GUILayout.Button("Generate Geometry"))
             {
-                composite.GenerateGeometry();
+                composite.RequestGeometryGeneration();
                 EditorUtility.SetDirty(composite);
                 if (composite.gameObject.scene.IsValid())
                 {
@@ -55,7 +56,7 @@ namespace CompositeCollider3D.Editor
                 }
             }
 
-            using (new EditorGUI.DisabledScope(EditorApplication.isPlaying || composite.GetGeneratedMeshes().Length == 0))
+            using (new EditorGUI.DisabledScope(EditorApplication.isPlaying || composite.IsGeometryGenerationRunning || composite.GetGeneratedMeshes().Length == 0))
             {
                 if (GUILayout.Button("Save Generated Meshes..."))
                 {
