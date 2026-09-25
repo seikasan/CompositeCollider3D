@@ -39,12 +39,23 @@ namespace CompositeCollider3D
         [SerializeField] private LayerMask _includeLayers;
         [SerializeField] private LayerMask _excludeLayers;
         [SerializeField] private int _layerOverridePriority;
+        [SerializeField, Range(0.01f, 1f), Tooltip("Higher values usually use fewer convex parts but approximate concavities less closely.")]
+        private float _coacdThreshold = 0.05f;
+        [SerializeField, Range(1000, 10000), Tooltip("Samples used to estimate decomposition error. Lower values may generate faster.")]
+        private int _coacdSampleResolution = 2000;
+        [SerializeField, Range(60, 2000), Tooltip("Search iterations for each CoACD split. Lower values may generate faster.")]
+        private int _coacdMctsIteration = 150;
 
         [SerializeField, HideInInspector] private List<Mesh> _generatedMeshes = new();
         [SerializeField, HideInInspector] private GameObject _generatedRoot;
         [SerializeField, HideInInspector] private Mesh _mergedMesh;
         [SerializeField, HideInInspector] private bool _generatedMeshesAreSavedAssets;
         [SerializeField, HideInInspector] private string _lastGeneratedHash;
+        [SerializeField, HideInInspector] private long _lastTotalMilliseconds;
+        [SerializeField, HideInInspector] private long _lastCaptureMilliseconds;
+        [SerializeField, HideInInspector] private long _lastBooleanMilliseconds;
+        [SerializeField, HideInInspector] private long _lastCoacdMilliseconds;
+        [SerializeField, HideInInspector] private long _lastApplyMilliseconds;
         [NonSerialized] private string _lastFailedHash;
         [NonSerialized] private bool _settingsDirty = true;
         [NonSerialized] private int _lastAppliedLayer = -1;
@@ -121,11 +132,8 @@ namespace CompositeCollider3D
                 }
 
                 CommitGeneratedMeshes(nextMerged, nextHulls, hash);
-                Debug.Log(
-                    $"CompositeCollider3D generation: total {ElapsedMilliseconds(started)} ms " +
-                    $"(capture {captureMs} ms, Boolean {result.BooleanMilliseconds} ms, " +
-                    $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {ElapsedMilliseconds(applyStarted)} ms); " +
-                    $"result {nextMerged.triangles.Length / 3} triangles, {nextHulls?.Count ?? 0} convex parts.", this);
+                RecordGeneration(result, ElapsedMilliseconds(started), captureMs,
+                    ElapsedMilliseconds(applyStarted), nextMerged, nextHulls);
             }
             catch (Exception e)
             {
@@ -239,11 +247,20 @@ namespace CompositeCollider3D
             return _generatedRoot != null && _generatedMeshes is { Count: > 0 };
         }
 
+        public bool IsGeneratedGeometryCurrent =>
+            HasGeneratedColliders() && _lastGeneratedHash == ComputeGenerationHash();
+
         private string ComputeGenerationHash()
         {
             var hash = new Hash128();
 
             hash.Append((int)_representation);
+            if (_representation == CollisionRepresentation.DynamicConvex)
+            {
+                hash.Append(Mathf.Clamp(_coacdThreshold, 0.01f, 1f));
+                hash.Append(Mathf.Clamp(_coacdSampleResolution, 1000, 10000));
+                hash.Append(Mathf.Clamp(_coacdMctsIteration, 60, 2000));
+            }
             hash.Append(_sources?.Length ?? 0);
 
             if (_sources == null)

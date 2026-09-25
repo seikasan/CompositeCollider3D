@@ -24,6 +24,9 @@ namespace CompositeCollider3D
         {
             public SourceSnapshot[] Sources;
             public bool Dynamic;
+            public double CoacdThreshold;
+            public int CoacdSampleResolution;
+            public int CoacdMctsIteration;
         }
 
         private sealed class RawMesh
@@ -120,11 +123,8 @@ namespace CompositeCollider3D
                     }
 
                     CommitGeneratedMeshes(merged, hulls, completedHash);
-                    UnityEngine.Debug.Log(
-                        $"CompositeCollider3D generation: total {ElapsedMilliseconds(_startedTicks)} ms " +
-                        $"(capture {_captureMilliseconds} ms, Boolean {result.BooleanMilliseconds} ms, " +
-                        $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {ElapsedMilliseconds(applyStarted)} ms); " +
-                        $"result {merged.triangles.Length / 3} triangles, {hulls?.Count ?? 0} convex parts.", this);
+                    RecordGeneration(result, ElapsedMilliseconds(_startedTicks), _captureMilliseconds,
+                        ElapsedMilliseconds(applyStarted), merged, hulls);
                 }
                 catch
                 {
@@ -161,6 +161,21 @@ namespace CompositeCollider3D
         private static long ElapsedMilliseconds(long startTicks) =>
             (Stopwatch.GetTimestamp() - startTicks) * 1000 / Stopwatch.Frequency;
 
+        private void RecordGeneration(RawResult result, long totalMs, long captureMs, long applyMs,
+            Mesh merged, List<Mesh> hulls)
+        {
+            _lastTotalMilliseconds = totalMs;
+            _lastCaptureMilliseconds = captureMs;
+            _lastBooleanMilliseconds = result.BooleanMilliseconds;
+            _lastCoacdMilliseconds = result.DecompositionMilliseconds;
+            _lastApplyMilliseconds = applyMs;
+            UnityEngine.Debug.Log(
+                $"CompositeCollider3D generation: total {totalMs} ms " +
+                $"(capture {captureMs} ms, Boolean {result.BooleanMilliseconds} ms, " +
+                $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {applyMs} ms); " +
+                $"result {merged.triangles.Length / 3} triangles, {hulls?.Count ?? 0} convex parts.", this);
+        }
+
         private GenerationSnapshot CaptureSnapshot()
         {
             if (_sources == null || _sources.Length < 2)
@@ -180,6 +195,9 @@ namespace CompositeCollider3D
             {
                 Sources = sources,
                 Dynamic = _representation == CollisionRepresentation.DynamicConvex,
+                CoacdThreshold = Mathf.Clamp(_coacdThreshold, 0.01f, 1f),
+                CoacdSampleResolution = Mathf.Clamp(_coacdSampleResolution, 1000, 10000),
+                CoacdMctsIteration = Mathf.Clamp(_coacdMctsIteration, 60, 2000)
             };
         }
 
@@ -327,7 +345,8 @@ namespace CompositeCollider3D
 
                     if (snapshot.Dynamic)
                     {
-                        hulls = CoacdRaw.Decompose(merged);
+                        hulls = CoacdRaw.Decompose(merged, snapshot.CoacdThreshold,
+                            snapshot.CoacdSampleResolution, snapshot.CoacdMctsIteration);
 
                         if (hulls.Length == 0)
                         {
@@ -436,7 +455,7 @@ namespace CompositeCollider3D
             [DllImport("lib_coacd", CallingConvention = CallingConvention.Cdecl, EntryPoint = "CoACD_freeMeshArray")]
             private static extern void Free(NativeMeshArray array);
 
-            public static RawMesh[] Decompose(RawMesh mesh)
+            public static RawMesh[] Decompose(RawMesh mesh, double threshold, int sampleResolution, int mctsIteration)
             {
                 var doubles = new double[mesh.Positions.Length];
 
@@ -460,13 +479,13 @@ namespace CompositeCollider3D
 
                     NativeMeshArray output = Run(
                         ref input,
-                        threshold: 0.05,
+                        threshold: threshold,
                         maxConvexHull: -1,
                         preprocessMode: 0,
                         preprocessResolution: 50,
-                        sampleResolution: 2000,
+                        sampleResolution: sampleResolution,
                         mctsNodes: 20,
-                        mctsIteration: 150,
+                        mctsIteration: mctsIteration,
                         mctsMaxDepth: 3,
                         pca: false,
                         merge: true,

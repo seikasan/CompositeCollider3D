@@ -10,6 +10,8 @@ namespace CompositeCollider3D.Editor
     [CustomEditor(typeof(Composite))]
     public sealed class CompositeCollider3DEditor : UnityEditor.Editor
     {
+        private bool _showAdvanced;
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -20,6 +22,19 @@ namespace CompositeCollider3D.Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_includeLayers"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_excludeLayers"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_layerOverridePriority"));
+            if (serializedObject.FindProperty("_representation").enumValueIndex ==
+                (int)Composite.CollisionRepresentation.DynamicConvex)
+            {
+                _showAdvanced = EditorGUILayout.Foldout(_showAdvanced, "Advanced (CoACD)", true);
+                if (_showAdvanced)
+                {
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("_coacdThreshold"), new GUIContent("Concavity Threshold"));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("_coacdSampleResolution"), new GUIContent("Sample Resolution"));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("_coacdMctsIteration"), new GUIContent("MCTS Iterations"));
+                    EditorGUI.indentLevel--;
+                }
+            }
             serializedObject.ApplyModifiedProperties();
 
             var composite = (Composite)target;
@@ -32,12 +47,12 @@ namespace CompositeCollider3D.Editor
             if (GUILayout.Button("Use Child Colliders"))
             {
                 var children = composite.GetComponentsInChildren<Collider>(true);
-                var generatedRoot = serializedObject.FindProperty("_generatedRoot").objectReferenceValue as GameObject;
+                var excludedRoot = serializedObject.FindProperty("_generatedRoot").objectReferenceValue as GameObject;
                 var sources = new List<Collider>();
                 foreach (Collider child in children)
                 {
                     if (child.transform != composite.transform &&
-                        (generatedRoot == null || !child.transform.IsChildOf(generatedRoot.transform)))
+                        (excludedRoot == null || !child.transform.IsChildOf(excludedRoot.transform)))
                         sources.Add(child);
                 }
 
@@ -68,6 +83,34 @@ namespace CompositeCollider3D.Editor
                 {
                     SaveGeneratedMeshes(composite);
                 }
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Generated Info", EditorStyles.boldLabel);
+            Mesh[] meshes = composite.GetGeneratedMeshes();
+            var generatedRoot = serializedObject.FindProperty("_generatedRoot").objectReferenceValue as GameObject;
+            string status = composite.IsGeometryGenerationRunning ? "Generating" :
+                generatedRoot == null || meshes.Length == 0 ? "No result" :
+                composite.IsGeneratedGeometryCurrent ? "Current" : "Out of date";
+            EditorGUILayout.LabelField("Status", status);
+            if (generatedRoot != null && meshes.Length > 0 && meshes[0] != null)
+            {
+                MeshCollider[] colliders = generatedRoot.GetComponentsInChildren<MeshCollider>(true);
+                int convexParts = 0;
+                foreach (MeshCollider collider in colliders)
+                    if (collider.convex) convexParts++;
+                EditorGUILayout.LabelField("Result Triangles", (meshes[0].GetIndexCount(0) / 3).ToString());
+                EditorGUILayout.LabelField("Colliders", colliders.Length.ToString());
+                EditorGUILayout.LabelField("Convex Parts", convexParts.ToString());
+            }
+            long total = serializedObject.FindProperty("_lastTotalMilliseconds").longValue;
+            if (total > 0)
+            {
+                EditorGUILayout.LabelField("Last Total", total + " ms");
+                EditorGUILayout.LabelField("Capture", serializedObject.FindProperty("_lastCaptureMilliseconds").longValue + " ms");
+                EditorGUILayout.LabelField("Boolean", serializedObject.FindProperty("_lastBooleanMilliseconds").longValue + " ms");
+                EditorGUILayout.LabelField("CoACD", serializedObject.FindProperty("_lastCoacdMilliseconds").longValue + " ms");
+                EditorGUILayout.LabelField("Mesh / Collider Apply", serializedObject.FindProperty("_lastApplyMilliseconds").longValue + " ms");
             }
         }
 
