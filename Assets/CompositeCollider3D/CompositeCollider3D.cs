@@ -4,12 +4,13 @@ using ManifoldNET;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
+using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 
 namespace CompositeCollider3D
 {
     /// <summary>
-    /// v0.1: 閉じたMeshColliderソリッドを1つの静的メッシュまたは動的な凸複合体に統合します。
+    /// v0.2: Colliderの閉じた立体を順序どおりにBoolean演算し、物理用Colliderを生成します。
     /// </summary>
     public sealed class CompositeCollider3D : MonoBehaviour
     {
@@ -19,7 +20,22 @@ namespace CompositeCollider3D
             DynamicConvex
         }
 
-        [SerializeField] private MeshCollider[] _sources = Array.Empty<MeshCollider>();
+        public enum BooleanOperation
+        {
+            Merge,
+            Difference,
+            Intersect
+        }
+
+        [Serializable]
+        public struct SourceEntry
+        {
+            public Collider collider;
+            [Tooltip("最初の要素では使用しません。2番目以降は、それまでの結果に対する演算です。")]
+            public BooleanOperation operation;
+        }
+
+        [SerializeField] private SourceEntry[] _sources = Array.Empty<SourceEntry>();
         [SerializeField] private CollisionRepresentation _representation = CollisionRepresentation.StaticConcave;
         [SerializeField] private PhysicsMaterial _material;
         [SerializeField] private bool _showDebugWireframes = true;
@@ -40,10 +56,10 @@ namespace CompositeCollider3D
             {
                 if (_sources == null || _sources.Length < 2)
                 {
-                    throw new InvalidOperationException("At least two closed MeshColliders are required.");
+                    throw new InvalidOperationException("At least two Collider sources are required.");
                 }
 
-                using Manifold first = MakeSolid(_sources[0]);
+                using Manifold first = MakeSolid(_sources[0].collider);
                 Manifold accumulated = first;
 
                 bool ownsAccumulated = false;
@@ -51,25 +67,37 @@ namespace CompositeCollider3D
                 {
                     for (int i = 1; i < _sources.Length; i++)
                     {
-                        using Manifold next = MakeSolid(_sources[i]);
-                        Manifold union = accumulated + next;
+                        using Manifold next = MakeSolid(_sources[i].collider);
+                        Manifold operationResult = _sources[i].operation switch
+                        {
+                            BooleanOperation.Merge => accumulated + next,
+                            BooleanOperation.Difference => accumulated - next,
+                            BooleanOperation.Intersect => accumulated & next,
+                            _ => throw new InvalidOperationException("Unsupported Boolean operation.")
+                        };
 
                         if (ownsAccumulated)
                         {
                             accumulated.Dispose();
                         }
 
-                        accumulated = union;
+                        accumulated = operationResult;
                         ownsAccumulated = true;
 
-                        if (union.Status != ManifoldError.NoError || union.IsEmpty)
+                        if (operationResult.Status != ManifoldError.NoError || operationResult.IsEmpty)
                         {
-                            throw new InvalidOperationException($"Manifold union failed: {union.Status}");
+                            throw new InvalidOperationException($"Boolean operation {i} ({_sources[i].operation}) failed or produced an empty solid: {operationResult.Status}");
                         }
                     }
 
+                    float volume = accumulated.Properties.volume;
+                    if (float.IsNaN(volume) || float.IsInfinity(volume) || volume <= 0f)
+                    {
+                        throw new InvalidOperationException($"Boolean result has invalid volume: {volume}.");
+                    }
+
                     using MeshGL result = accumulated.MeshGL;
-                    nextMerged = ToUnityMesh(result, "Composite3D Union");
+                    nextMerged = ToUnityMesh(result, "Composite3D Result");
                 }
                 finally
                 {
@@ -139,9 +167,9 @@ namespace CompositeCollider3D
                         throw new InvalidOperationException("StaticConcave requires no dynamic Rigidbody.");
                     }
 
-                    foreach (MeshCollider source in _sources)
+                    foreach (SourceEntry entry in _sources)
                     {
-                        source.enabled = false;
+                        entry.collider.enabled = false;
                     }
 
                     GameObject previousRoot = _generatedRoot;
@@ -170,7 +198,7 @@ namespace CompositeCollider3D
                     }
 
                     Debug.Log(
-                        $"CompositeCollider3D: merged {_sources.Length} meshes into {nextMerged.triangles.Length / 3} triangles; convex parts: {nextHulls?.Count ?? 0}.",
+                        $"CompositeCollider3D: processed {_sources.Length} solids into {nextMerged.triangles.Length / 3} triangles; convex parts: {nextHulls?.Count ?? 0}.",
                         this);
                 }
                 catch
@@ -201,16 +229,48 @@ namespace CompositeCollider3D
             }
         }
 
-        private Manifold MakeSolid(MeshCollider source)
+        private Manifold MakeSolid(Collider source)
         {
-            if (source == null || source.sharedMesh == null)
+            if (source == null)
             {
-                throw new InvalidOperationException("A source MeshCollider or mesh is missing.");
+                throw new InvalidOperationException("A source Collider is missing.");
             }
 
-            var mesh = source.sharedMesh;
-            var vertices = mesh.vertices;
-            var triangles = mesh.triangles;
+            Vector3[] vertices;
+            int[] triangles;
+            Matrix4x4 matrix;
+
+            switch (source)
+            {
+                case MeshCollider meshCollider:
+                {
+                    if (meshCollider.sharedMesh == null)
+                    {
+                        throw new InvalidOperationException($"{source.name}: MeshCollider has no mesh.");
+                    }
+
+                    vertices = meshCollider.sharedMesh.vertices;
+                    triangles = meshCollider.sharedMesh.triangles;
+                    matrix = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
+                    break;
+                }
+                case BoxCollider box:
+                    MakeBox(box, out vertices, out triangles);
+                    matrix = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
+                    break;
+                case SphereCollider sphere:
+                    MakeSphere(sphere, out vertices, out triangles);
+                    matrix = transform.worldToLocalMatrix;
+                    break;
+                case CapsuleCollider capsule:
+                    MakeCapsule(capsule, out vertices, out triangles);
+                    matrix = transform.worldToLocalMatrix;
+                    break;
+                default:
+                {
+                    throw new InvalidOperationException($"{source.name}: unsupported Collider type {source.GetType().Name}.");
+                }
+            }
 
             if (vertices.Length < 4 || triangles.Length < 12)
             {
@@ -218,7 +278,6 @@ namespace CompositeCollider3D
             }
 
             var positions = new float[vertices.Length * 3];
-            Matrix4x4 matrix = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
 
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -250,6 +309,182 @@ namespace CompositeCollider3D
             }
 
             return solid;
+        }
+
+        private static void MakeBox(BoxCollider box, out Vector3[] vertices, out int[] triangles)
+        {
+            Vector3 c = box.center;
+            Vector3 h = box.size * 0.5f;
+
+            if (h.x <= 0f || h.y <= 0f || h.z <= 0f)
+            {
+                throw new InvalidOperationException($"{box.name}: BoxCollider size must be positive.");
+            }
+
+            vertices = new[]
+            {
+                c + new Vector3(-h.x, -h.y, -h.z), c + new Vector3(h.x, -h.y, -h.z),
+                c + new Vector3(h.x, h.y, -h.z), c + new Vector3(-h.x, h.y, -h.z),
+                c + new Vector3(-h.x, -h.y, h.z), c + new Vector3(h.x, -h.y, h.z),
+                c + new Vector3(h.x, h.y, h.z), c + new Vector3(-h.x, h.y, h.z)
+            };
+
+            triangles = new[]
+            {
+                0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+                0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5,
+                0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2
+            };
+        }
+
+        private static void MakeSphere(SphereCollider sphere, out Vector3[] vertices, out int[] triangles)
+        {
+            float radius = sphere.radius * MaxAbs(sphere.transform.lossyScale);
+
+            if (radius <= 0f)
+            {
+                throw new InvalidOperationException($"{sphere.name}: radius must be positive.");
+            }
+
+            Vector3 center = sphere.transform.TransformPoint(sphere.center);
+            MakeRevolved(center, Quaternion.identity, radius, 0f, out vertices, out triangles);
+        }
+
+        private static void MakeCapsule(CapsuleCollider capsule, out Vector3[] vertices, out int[] triangles)
+        {
+            Vector3 scale = capsule.transform.lossyScale;
+            Vector3 axis;
+            float axisScale;
+            float radialScale;
+
+            switch (capsule.direction)
+            {
+                case 0:
+                    axis = capsule.transform.rotation * Vector3.right;
+                    axisScale = Mathf.Abs(scale.x);
+                    radialScale = Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+                    break;
+                case 1:
+                    axis = capsule.transform.rotation * Vector3.up;
+                    axisScale = Mathf.Abs(scale.y);
+                    radialScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+                    break;
+                case 2:
+                    axis = capsule.transform.rotation * Vector3.forward;
+                    axisScale = Mathf.Abs(scale.z);
+                    radialScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y));
+                    break;
+                default:
+                    throw new InvalidOperationException($"{capsule.name}: invalid capsule direction.");
+            }
+
+            float radius = capsule.radius * radialScale;
+            float height = Mathf.Max(capsule.height * axisScale, radius * 2f);
+            if (radius <= 0f || height <= 0f)
+            {
+                throw new InvalidOperationException($"{capsule.name}: capsule size must be positive.");
+            }
+
+            Vector3 center = capsule.transform.TransformPoint(capsule.center);
+            MakeRevolved(center, Quaternion.FromToRotation(Vector3.up, axis), radius,
+                height * 0.5f - radius, out vertices, out triangles);
+        }
+
+        private static float MaxAbs(Vector3 value) =>
+            Mathf.Max(Mathf.Abs(value.x), Mathf.Abs(value.y), Mathf.Abs(value.z));
+
+        // The 12-sided, 5-step profile keeps an isolated primitive below Unity's 255-triangle convex limit.
+        private static void MakeRevolved(
+            Vector3 center,
+            Quaternion orientation,
+            float radius,
+            float cylinderHalfHeight,
+            out Vector3[] vertices,
+            out int[] triangles)
+        {
+            const int sides = 12;
+            const int hemisphereSteps = 5;
+            var rings = new List<Vector2>();
+
+            for (int step = 1; step <= hemisphereSteps; step++)
+            {
+                float angle = (Mathf.PI * 0.5f) * step / hemisphereSteps;
+                rings.Add(
+                    new Vector2(
+                        radius * Mathf.Sin(angle),
+                        cylinderHalfHeight + radius * Mathf.Cos(angle)));
+            }
+
+            if (cylinderHalfHeight > 0f)
+            {
+                rings.Add(new Vector2(radius, -cylinderHalfHeight));
+            }
+
+            for (int step = 1; step < hemisphereSteps; step++)
+            {
+                float angle = Mathf.PI * 0.5f + (Mathf.PI * 0.5f) * step / hemisphereSteps;
+                rings.Add(
+                    new Vector2(
+                        radius * Mathf.Sin(angle),
+                        -cylinderHalfHeight + radius * Mathf.Cos(angle)));
+            }
+
+            var points = new List<Vector3>(rings.Count * sides + 2)
+            {
+                center + orientation * new Vector3(0f, cylinderHalfHeight + radius, 0f)
+            };
+
+            foreach (Vector2 ring in rings)
+            {
+                for (int side = 0; side < sides; side++)
+                {
+                    float angle = 2f * Mathf.PI * side / sides;
+                    points.Add(
+                        center + orientation * new Vector3(
+                            ring.x * Mathf.Cos(angle),
+                            ring.y, ring.x * Mathf.Sin(angle)));
+                }
+            }
+
+            int bottom = points.Count;
+            points.Add(center + orientation * new Vector3(0f, -cylinderHalfHeight - radius, 0f));
+
+            var faces = new List<int>(sides * rings.Count * 6);
+
+            for (int side = 0; side < sides; side++)
+            {
+                int next = (side + 1) % sides;
+                faces.Add(0); faces.Add(1 + next); faces.Add(1 + side);
+            }
+
+            for (int ring = 0; ring < rings.Count - 1; ring++)
+            {
+                for (int side = 0; side < sides; side++)
+                {
+                    int next = (side + 1) % sides;
+                    int a = 1 + ring * sides + side;
+                    int b = 1 + ring * sides + next;
+                    int c = a + sides;
+                    int d = b + sides;
+                    faces.Add(a);
+                    faces.Add(b);
+                    faces.Add(c);
+                    faces.Add(b);
+                    faces.Add(d);
+                    faces.Add(c);
+                }
+            }
+
+            int last = 1 + (rings.Count - 1) * sides;
+            for (int side = 0; side < sides; side++)
+            {
+                faces.Add(bottom);
+                faces.Add(last + side);
+                faces.Add(last + (side + 1) % sides);
+            }
+
+            vertices = points.ToArray();
+            triangles = faces.ToArray();
         }
 
         private static Mesh ToUnityMesh(MeshGL data, string meshName)
@@ -320,13 +555,59 @@ namespace CompositeCollider3D
 
             if (_sources != null)
             {
-                foreach (MeshCollider source in _sources)
+                foreach (SourceEntry entry in _sources)
                 {
-                    if (source != null && source.sharedMesh != null)
+                    Collider source = entry.collider;
+                    if (source is MeshCollider meshSource && meshSource.sharedMesh != null)
                     {
                         Gizmos.color = _sourceColor;
                         Gizmos.matrix = source.transform.localToWorldMatrix;
-                        Gizmos.DrawWireMesh(source.sharedMesh);
+                        Gizmos.DrawWireMesh(meshSource.sharedMesh);
+                    }
+                    else if (source is BoxCollider box)
+                    {
+                        Gizmos.color = _sourceColor;
+                        Gizmos.matrix = source.transform.localToWorldMatrix;
+                        Gizmos.DrawWireCube(box.center, box.size);
+                    }
+                    else if (source is SphereCollider sphere)
+                    {
+                        Gizmos.color = _sourceColor;
+                        Gizmos.matrix = Matrix4x4.identity;
+                        Gizmos.DrawWireSphere(source.transform.TransformPoint(sphere.center), sphere.radius * MaxAbs(source.transform.lossyScale));
+                    }
+                    else if (source is CapsuleCollider capsule)
+                    {
+                        Vector3 scale = source.transform.lossyScale;
+                        Vector3 axis = source.transform.rotation *
+                            (capsule.direction switch
+                            {
+                                0 => Vector3.right,
+                                2 => Vector3.forward,
+                                _ => Vector3.up
+                            });
+
+                        float axisScale = capsule.direction switch
+                        {
+                            0 => Mathf.Abs(scale.x),
+                            2 => Mathf.Abs(scale.z),
+                            _ => Mathf.Abs(scale.y)
+                        };
+
+                        float radialScale = capsule.direction switch
+                        {
+                            0 => Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)),
+                            2 => Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)),
+                            _ => Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z))
+                        };
+
+                        float radius = capsule.radius * radialScale;
+                        float half = Mathf.Max(0f, capsule.height * axisScale * 0.5f - radius);
+                        Vector3 center = source.transform.TransformPoint(capsule.center);
+                        Gizmos.color = _sourceColor;
+                        Gizmos.matrix = Matrix4x4.identity;
+                        Gizmos.DrawWireSphere(center + axis * half, radius);
+                        Gizmos.DrawWireSphere(center - axis * half, radius);
                     }
                 }
             }

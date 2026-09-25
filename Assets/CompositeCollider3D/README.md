@@ -1,19 +1,16 @@
-# CompositeCollider3D v0.1
+# CompositeCollider3D
 
-このプロトタイプは2つ以上の読み取り可能で、閉じており、一貫した巻き方向を持つMeshColliderメッシュを受け入れます。各メッシュをCompositeCollider3Dオブジェクトのローカル座標に変換し、ManifoldNETでマージして、1つの静的な非凸MeshColliderまたは凸CoACDパーツの動的な複合体のいずれかを構築します。ソースオブジェクトの回転とスケールは変換時に適用されます。
+`CompositeCollider3D` combines closed 3D Collider shapes with Boolean operations and creates a collision representation for static or dynamic objects.
 
-## 使用方法
+## Supported sources
 
-1. 親GameObjectに`CompositeCollider3D`を配置します。最初の物理チェックではそのスケールを`(1,1,1)`に保ちます。
-2. 少なくとも2つのソースMeshColliderを`Sources`に割り当てます。それらのメッシュは、外向きの三角形を持つ読み取り可能な閉じたソリッドである必要があります。ソースには任意の回転を設定できます。親が落下する場合は、それらを親の下に配置したままにします。
-3. `Static Concave`または`Dynamic Convex`を選択し、コンポーネントのコンテキストメニューから**Generate Geometry**を実行します。動的モードでは、必要に応じて親にRigidbodyが追加されます。重複した接触を避けるため、生成後にソースコライダーは無効化されます。
-4. 親を選択すると、青色の入力メッシュ、緑色の和集合メッシュ、オレンジ色の凸パーツがワイヤーフレームとして表示されます。動的チェックでは、意図した凹部の内側に小さな球を配置してシーンを再生します。衝突挙動とは別に和集合のワイヤーフレームを確認します。
+- `MeshCollider`: a readable, closed triangle mesh with consistent outward winding.
+- `BoxCollider`, `SphereCollider`, `CapsuleCollider`: converted to closed triangle meshes before the operation. Sphere and capsule surfaces are polygonal approximations.
 
-生成時には無効なメッシュが報告され、失敗した場合は以前に生成されたコライダーが保持されます。生成された各凸メッシュはUnityの255三角形制限に対してチェックされます。
+Add the component to a parent GameObject and populate **Sources** in operation order. The first source establishes the initial solid; its Operation value is ignored. Each later entry applies its Operation to the accumulated result: **Merge** adds its volume, **Difference** subtracts it, and **Intersect** retains the overlap. For example, `A → Difference B → Merge C` evaluates as `(A − B) ∪ C`.
 
-## 現在の制限
+Choose **Static Concave** to create a single nonconvex MeshCollider, or **Dynamic Convex** to use CoACD to create convex MeshColliders under one Rigidbody. Run **Generate Geometry** from the component context menu or call `GenerateGeometry()` from code. The source Colliders are disabled after a successful generation to prevent duplicate contacts. The selected object displays source shapes in blue, the Boolean result in green, and convex parts in orange.
 
-- マージのみです; DifferenceとIntersect、プリミティブコライダーアダプター、エディターキャッシュ、アセット保存、自動再生成は今後の作業です。
-- CoACDは和集合を近似します。凹部の衝突挙動にはUnity Play Modeでのチェックが必要で、CoACDパラメーターの調整または別の分解方法が必要になる場合があります。
-- インポートされたネイティブプラグインはターゲットプラットフォームをサポートしている必要があります。現在のManifoldNET NuGetパッケージにはWindows x64ネイティブDLLが含まれています; 他のプラットフォームは検証されていません。
-- ソースジオメトリまたは相対トランスフォームを変更した後は再生成してください。メッシュインポートの**Read/Write**を有効にする必要があります。
+The component uses ManifoldNET for Boolean operations and CoACD for dynamic convex decomposition. Mesh inputs must be readable. Dynamic sources should be children of the composite GameObject. Keep the composite object's scale at `(1,1,1)` for the intended collision shape. Invalid or empty results retain the previous generated Collider.
+
+Generated meshes are scene objects. Changes to source shapes or relative transforms require another call to **Generate Geometry**. Native plugin support depends on the platform; the included ManifoldNET package supplies Windows x64 binaries.
