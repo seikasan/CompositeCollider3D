@@ -14,6 +14,7 @@ namespace CompositeCollider3D.Editor
         {
             serializedObject.Update();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_sources"), true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_generationType"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_representation"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_material"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_includeLayers"));

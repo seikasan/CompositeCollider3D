@@ -12,8 +12,15 @@ namespace CompositeCollider3D
     /// <summary>
     /// Colliderの閉じた立体を順序どおりにBoolean演算し、物理用Colliderを生成します。
     /// </summary>
+    [ExecuteAlways]
     public sealed class CompositeCollider3D : MonoBehaviour
     {
+        public enum GenerationType
+        {
+            Manual,
+            Synchronous
+        }
+
         public enum CollisionRepresentation
         {
             StaticConcave,
@@ -37,6 +44,7 @@ namespace CompositeCollider3D
         }
 
         [SerializeField] private SourceEntry[] _sources = Array.Empty<SourceEntry>();
+        [SerializeField] private GenerationType _generationType = GenerationType.Manual;
         [SerializeField] private CollisionRepresentation _representation = CollisionRepresentation.StaticConcave;
         [SerializeField] private PhysicsMaterial _material;
         [SerializeField] private LayerMask _includeLayers;
@@ -51,18 +59,47 @@ namespace CompositeCollider3D
         [SerializeField, HideInInspector] private GameObject _generatedRoot;
         [SerializeField, HideInInspector] private Mesh _mergedMesh;
         [SerializeField, HideInInspector] private bool _generatedMeshesAreSavedAssets;
+        [SerializeField, HideInInspector] private string _lastGeneratedHash;
+        [NonSerialized] private string _lastFailedHash;
+        [NonSerialized] private bool _settingsDirty = true;
+        [NonSerialized] private int _lastAppliedLayer = -1;
+
+#if UNITY_EDITOR
+        private void Update()
+        {
+            if (Application.IsPlaying(gameObject)) return;
+            if (_settingsDirty || _lastAppliedLayer != gameObject.layer)
+            {
+                ApplyColliderSettings();
+                _settingsDirty = false;
+                _lastAppliedLayer = gameObject.layer;
+            }
+            if (_generationType != GenerationType.Synchronous ||
+                _sources == null || _sources.Length < 2)
+                return;
+
+            string hash = ComputeGenerationHash();
+            if (hash != _lastFailedHash && (hash != _lastGeneratedHash || !HasGeneratedColliders()))
+                GenerateGeometry();
+        }
+
+        private void OnValidate() => _settingsDirty = true;
+#endif
 
         [ContextMenu("Generate Geometry")]
         public void GenerateGeometry()
         {
             Mesh nextMerged = null;
             List<Mesh> nextHulls = null;
+            string hash = null;
             try
             {
                 if (_sources == null || _sources.Length < 2)
                 {
                     throw new InvalidOperationException("At least two Collider sources are required.");
                 }
+
+                hash = ComputeGenerationHash();
 
                 using Manifold first = MakeSolid(ResolveCollider(_sources[0]));
                 Manifold accumulated = first;
@@ -185,6 +222,9 @@ namespace CompositeCollider3D
                     _generatedRoot = stagedRoot;
                     _mergedMesh = nextMerged;
                     _generatedMeshesAreSavedAssets = false;
+                    _lastGeneratedHash = hash;
+                    _lastFailedHash = null;
+                    _lastAppliedLayer = gameObject.layer;
                     _generatedMeshes.Clear();
                     _generatedMeshes.Add(nextMerged);
 
@@ -221,6 +261,7 @@ namespace CompositeCollider3D
             }
             catch (Exception e)
             {
+                _lastFailedHash = hash;
                 if (nextMerged != null && nextMerged != _mergedMesh)
                 {
                     DisposeUnityObject(nextMerged);
@@ -238,6 +279,86 @@ namespace CompositeCollider3D
                 }
 
                 Debug.LogError($"CompositeCollider3D generation failed: {e}", this);
+            }
+        }
+
+        private bool HasGeneratedColliders()
+        {
+            return _generatedRoot != null && _generatedMeshes != null && _generatedMeshes.Count > 0;
+        }
+
+        private string ComputeGenerationHash()
+        {
+            var hash = new Hash128();
+            hash.Append((int)_representation);
+            hash.Append(_sources?.Length ?? 0);
+            if (_sources == null) return hash.ToString();
+
+            for (int i = 0; i < _sources.Length; i++)
+            {
+                Collider source = ResolveCollider(_sources[i]);
+                hash.Append(i == 0 ? 0 : (int)ResolveOperation(_sources[i]));
+                hash.Append(source != null ? source.GetType().FullName : "missing");
+                if (source == null) continue;
+                Matrix4x4 relative = transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
+                for (int j = 0; j < 16; j++) hash.Append(Mathf.Round(relative[j] * 100000f) / 100000f);
+
+                switch (source)
+                {
+                    case MeshCollider meshCollider:
+                        Mesh mesh = meshCollider.sharedMesh;
+                        if (mesh != null)
+                        {
+                            try
+                            {
+                                hash.Append(mesh.vertices);
+                                hash.Append(mesh.triangles);
+                            }
+                            catch (UnityException) { hash.Append(-1); }
+                        }
+                        else hash.Append(-1);
+                        break;
+                    case BoxCollider box:
+                        AppendVector(ref hash, box.center);
+                        AppendVector(ref hash, box.size);
+                        break;
+                    case SphereCollider sphere:
+                        AppendVector(ref hash, sphere.center);
+                        hash.Append(sphere.radius);
+                        AppendVector(ref hash, source.transform.lossyScale);
+                        break;
+                    case CapsuleCollider capsule:
+                        AppendVector(ref hash, capsule.center);
+                        hash.Append(capsule.radius);
+                        hash.Append(capsule.height);
+                        hash.Append(capsule.direction);
+                        AppendVector(ref hash, source.transform.lossyScale);
+                        break;
+                    default:
+                        hash.Append(source.GetType().FullName);
+                        break;
+                }
+            }
+            return hash.ToString();
+        }
+
+        private static void AppendVector(ref Hash128 hash, Vector3 value)
+        {
+            hash.Append(value.x);
+            hash.Append(value.y);
+            hash.Append(value.z);
+        }
+
+        private void ApplyColliderSettings()
+        {
+            if (_generatedRoot == null) return;
+            foreach (MeshCollider collider in _generatedRoot.GetComponentsInChildren<MeshCollider>(true))
+            {
+                collider.sharedMaterial = _material;
+                collider.includeLayers = _includeLayers;
+                collider.excludeLayers = _excludeLayers;
+                collider.layerOverridePriority = _layerOverridePriority;
+                collider.gameObject.layer = gameObject.layer;
             }
         }
 
