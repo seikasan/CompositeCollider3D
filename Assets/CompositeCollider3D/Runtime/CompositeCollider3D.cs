@@ -10,7 +10,7 @@ using Vector3 = UnityEngine.Vector3;
 namespace CompositeCollider3D
 {
     /// <summary>
-    /// v0.2: Colliderの閉じた立体を順序どおりにBoolean演算し、物理用Colliderを生成します。
+    /// Colliderの閉じた立体を順序どおりにBoolean演算し、物理用Colliderを生成します。
     /// </summary>
     public sealed class CompositeCollider3D : MonoBehaviour
     {
@@ -33,11 +33,16 @@ namespace CompositeCollider3D
             public Collider collider;
             [Tooltip("最初の要素では使用しません。2番目以降は、それまでの結果に対する演算です。")]
             public BooleanOperation operation;
+            [Tooltip("指定した場合、ColliderとOperationはこのSourceコンポーネントから読み取ります。")]
+            public CompositeColliderSource3D source;
         }
 
         [SerializeField] private SourceEntry[] _sources = Array.Empty<SourceEntry>();
         [SerializeField] private CollisionRepresentation _representation = CollisionRepresentation.StaticConcave;
         [SerializeField] private PhysicsMaterial _material;
+        [SerializeField] private LayerMask _includeLayers;
+        [SerializeField] private LayerMask _excludeLayers;
+        [SerializeField] private int _layerOverridePriority;
         [SerializeField] private bool _showDebugWireframes = true;
         [SerializeField] private Color _sourceColor = new(0.2f, 0.7f, 1f, 0.6f);
         [SerializeField] private Color _mergedColor = new(0.2f, 1f, 0.3f, 0.8f);
@@ -46,6 +51,7 @@ namespace CompositeCollider3D
         [SerializeField, HideInInspector] private List<Mesh> _generatedMeshes = new();
         [SerializeField, HideInInspector] private GameObject _generatedRoot;
         [SerializeField, HideInInspector] private Mesh _mergedMesh;
+        [SerializeField, HideInInspector] private bool _generatedMeshesAreSavedAssets;
 
         [ContextMenu("Generate Geometry")]
         public void GenerateGeometry()
@@ -59,7 +65,7 @@ namespace CompositeCollider3D
                     throw new InvalidOperationException("At least two Collider sources are required.");
                 }
 
-                using Manifold first = MakeSolid(_sources[0].collider);
+                using Manifold first = MakeSolid(ResolveCollider(_sources[0]));
                 Manifold accumulated = first;
 
                 bool ownsAccumulated = false;
@@ -67,8 +73,9 @@ namespace CompositeCollider3D
                 {
                     for (int i = 1; i < _sources.Length; i++)
                     {
-                        using Manifold next = MakeSolid(_sources[i].collider);
-                        Manifold operationResult = _sources[i].operation switch
+                        using Manifold next = MakeSolid(ResolveCollider(_sources[i]));
+                        BooleanOperation operation = ResolveOperation(_sources[i]);
+                        Manifold operationResult = operation switch
                         {
                             BooleanOperation.Merge => accumulated + next,
                             BooleanOperation.Difference => accumulated - next,
@@ -86,7 +93,7 @@ namespace CompositeCollider3D
 
                         if (operationResult.Status != ManifoldError.NoError || operationResult.IsEmpty)
                         {
-                            throw new InvalidOperationException($"Boolean operation {i} ({_sources[i].operation}) failed or produced an empty solid: {operationResult.Status}");
+                            throw new InvalidOperationException($"Boolean operation {i} ({operation}) failed or produced an empty solid: {operationResult.Status}");
                         }
                     }
 
@@ -169,14 +176,16 @@ namespace CompositeCollider3D
 
                     foreach (SourceEntry entry in _sources)
                     {
-                        entry.collider.enabled = false;
+                        ResolveCollider(entry).enabled = false;
                     }
 
                     GameObject previousRoot = _generatedRoot;
                     var previousMeshes = new List<Mesh>(_generatedMeshes);
+                    bool previousMeshesAreSavedAssets = _generatedMeshesAreSavedAssets;
 
                     _generatedRoot = stagedRoot;
                     _mergedMesh = nextMerged;
+                    _generatedMeshesAreSavedAssets = false;
                     _generatedMeshes.Clear();
                     _generatedMeshes.Add(nextMerged);
 
@@ -189,12 +198,16 @@ namespace CompositeCollider3D
 
                     if (previousRoot != null)
                     {
+                        previousRoot.SetActive(false);
                         DisposeUnityObject(previousRoot);
                     }
 
-                    foreach (Mesh oldMesh in previousMeshes)
+                    if (!previousMeshesAreSavedAssets)
                     {
-                        DisposeUnityObject(oldMesh);
+                        foreach (Mesh oldMesh in previousMeshes)
+                        {
+                            DisposeUnityObject(oldMesh);
+                        }
                     }
 
                     Debug.Log(
@@ -226,6 +239,64 @@ namespace CompositeCollider3D
                 }
 
                 Debug.LogError($"CompositeCollider3D generation failed: {e}", this);
+            }
+        }
+
+        private static Collider ResolveCollider(SourceEntry entry) =>
+            entry.source != null ? entry.source.SourceCollider : entry.collider;
+
+        private static BooleanOperation ResolveOperation(SourceEntry entry) =>
+            entry.source != null ? entry.source.Operation : entry.operation;
+
+        public Mesh[] GetGeneratedMeshes() => _generatedMeshes.ToArray();
+
+        public void UseSavedMeshes(Mesh[] meshes)
+        {
+            if (meshes == null || meshes.Length != _generatedMeshes.Count || _generatedRoot == null)
+            {
+                throw new InvalidOperationException("Saved mesh count does not match the generated Collider set.");
+            }
+
+            var colliders = _generatedRoot.GetComponentsInChildren<MeshCollider>(true);
+
+            if (colliders.Length != meshes.Length - 1 && !(colliders.Length == 1 && meshes.Length == 1))
+            {
+                throw new InvalidOperationException("Generated Collider count changed before saving.");
+            }
+
+            foreach (Mesh mesh in meshes)
+            {
+                if (mesh == null)
+                {
+                    throw new InvalidOperationException("A saved Mesh is missing.");
+                }
+            }
+
+            if (meshes.Length == 1)
+            {
+                colliders[0].sharedMesh = meshes[0];
+            }
+            else
+            {
+                for (int i = 0; i < colliders.Length; i++)
+                {
+                    colliders[i].sharedMesh = meshes[i + 1];
+                }
+            }
+
+            var previous = new List<Mesh>(_generatedMeshes);
+            bool previousAreSavedAssets = _generatedMeshesAreSavedAssets;
+
+            _generatedMeshes.Clear();
+            _generatedMeshes.AddRange(meshes);
+            _mergedMesh = meshes[0];
+            _generatedMeshesAreSavedAssets = true;
+
+            if (previousAreSavedAssets) return;
+
+            foreach (Mesh mesh in previous)
+            {
+                DisposeUnityObject(mesh);
             }
         }
 
@@ -530,6 +601,9 @@ namespace CompositeCollider3D
             var col = owner.AddComponent<MeshCollider>();
             col.convex = convex;
             col.sharedMaterial = _material;
+            col.includeLayers = _includeLayers;
+            col.excludeLayers = _excludeLayers;
+            col.layerOverridePriority = _layerOverridePriority;
 
             col.sharedMesh = mesh;
             owner.layer = gameObject.layer;
@@ -538,6 +612,9 @@ namespace CompositeCollider3D
         private static void DisposeUnityObject(Object obj)
         {
             if (obj == null) return;
+#if UNITY_EDITOR
+            if (UnityEditor.EditorUtility.IsPersistent(obj)) return;
+#endif
 
             if (Application.isPlaying)
             {
@@ -557,7 +634,7 @@ namespace CompositeCollider3D
             {
                 foreach (SourceEntry entry in _sources)
                 {
-                    Collider source = entry.collider;
+                    Collider source = ResolveCollider(entry);
                     if (source is MeshCollider meshSource && meshSource.sharedMesh != null)
                     {
                         Gizmos.color = _sourceColor;
