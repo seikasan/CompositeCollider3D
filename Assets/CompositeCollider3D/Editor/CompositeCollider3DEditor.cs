@@ -1,9 +1,9 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using Composite = CompositeCollider3D.CompositeCollider3D;
-using Source = CompositeCollider3D.CompositeColliderSource3D;
 
 namespace CompositeCollider3D.Editor
 {
@@ -13,7 +13,7 @@ namespace CompositeCollider3D.Editor
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sources"), true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sources"), new GUIContent("Sources"), true);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_generationType"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_representation"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_material"));
@@ -29,19 +29,25 @@ namespace CompositeCollider3D.Editor
                 Repaint();
             }
 
-            if (GUILayout.Button("Use Child Sources"))
+            if (GUILayout.Button("Use Child Colliders"))
             {
-                var children = composite.GetComponentsInChildren<Source>(true);
+                var children = composite.GetComponentsInChildren<Collider>(true);
+                var generatedRoot = serializedObject.FindProperty("_generatedRoot").objectReferenceValue as GameObject;
+                var sources = new List<Collider>();
+                foreach (Collider child in children)
+                {
+                    if (child.transform != composite.transform &&
+                        (generatedRoot == null || !child.transform.IsChildOf(generatedRoot.transform)))
+                        sources.Add(child);
+                }
 
-                Undo.RecordObject(composite, "Use Child Sources");
+                Undo.RecordObject(composite, "Use Child Colliders");
                 serializedObject.Update();
                 SerializedProperty entries = serializedObject.FindProperty("_sources");
-                entries.arraySize = children.Length;
-                for (int i = 0; i < children.Length; i++)
+                entries.arraySize = sources.Count;
+                for (int i = 0; i < sources.Count; i++)
                 {
-                    SerializedProperty entry = entries.GetArrayElementAtIndex(i);
-                    entry.FindPropertyRelative("source").objectReferenceValue = children[i];
-                    entry.FindPropertyRelative("collider").objectReferenceValue = null;
+                    entries.GetArrayElementAtIndex(i).objectReferenceValue = sources[i];
                 }
                 serializedObject.ApplyModifiedProperties();
             }
@@ -123,40 +129,4 @@ namespace CompositeCollider3D.Editor
         }
     }
 
-    [CustomPropertyDrawer(typeof(Composite.SourceEntry))]
-    public sealed class CompositeColliderSourceEntryDrawer : PropertyDrawer
-    {
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
-            EditorGUIUtility.singleLineHeight * 2f + EditorGUIUtility.standardVerticalSpacing;
-
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-        {
-            EditorGUI.BeginProperty(position, label, property);
-            float line = EditorGUIUtility.singleLineHeight;
-            Rect first = new Rect(
-                position.x,
-                position.y,
-                position.width,
-                line);
-            Rect second = new Rect(
-                    position.x,
-                    position.y + line + EditorGUIUtility.standardVerticalSpacing,
-                    position.width,
-                    line);
-            SerializedProperty source = property.FindPropertyRelative("source");
-            EditorGUI.PropertyField(first, source, label);
-            if (source.objectReferenceValue == null)
-            {
-                EditorGUI.PropertyField(
-                    second,
-                    property.FindPropertyRelative("collider"),
-                    new GUIContent("Collider (Merge)"));
-            }
-            else
-            {
-                EditorGUI.LabelField(second, "Collider and Operation: Source component");
-            }
-            EditorGUI.EndProperty();
-        }
-    }
 }

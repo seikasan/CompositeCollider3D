@@ -172,7 +172,7 @@ namespace CompositeCollider3D
 
             for (int i = 0; i < sources.Length; i++)
             {
-                Collider col = ResolveCollider(_sources[i]);
+                Collider col = _sources[i];
                 sources[i] = CaptureSource(col, i == 0 ? BooleanOperation.Merge : ResolveOperation(_sources[i]));
             }
 

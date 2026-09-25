@@ -32,16 +32,7 @@ namespace CompositeCollider3D
             Intersect
         }
 
-        [Serializable]
-        public struct SourceEntry
-        {
-            [Tooltip("直接指定したColliderはMergeで結合します。")]
-            public Collider collider;
-            [Tooltip("指定した場合、ColliderとOperationはこのSourceコンポーネントから読み取ります。")]
-            public CompositeColliderSource3D source;
-        }
-
-        [SerializeField] private SourceEntry[] _sources = Array.Empty<SourceEntry>();
+        [SerializeField] private Collider[] _sources = Array.Empty<Collider>();
         [SerializeField] private GenerationType _generationType = GenerationType.Manual;
         [SerializeField] private CollisionRepresentation _representation = CollisionRepresentation.StaticConcave;
         [SerializeField] private PhysicsMaterial _material;
@@ -195,9 +186,9 @@ namespace CompositeCollider3D
                     throw new InvalidOperationException("StaticConcave requires no dynamic Rigidbody.");
                 }
 
-                foreach (SourceEntry entry in _sources)
+                foreach (Collider source in _sources)
                 {
-                    ResolveCollider(entry).enabled = false;
+                    source.enabled = false;
                 }
 
                 GameObject previousRoot = _generatedRoot;
@@ -262,9 +253,9 @@ namespace CompositeCollider3D
 
             for (int i = 0; i < _sources.Length; i++)
             {
-                Collider source = ResolveCollider(_sources[i]);
+                Collider source = _sources[i];
 
-                hash.Append(i == 0 ? 0 : (int)ResolveOperation(_sources[i]));
+                hash.Append(i == 0 ? 0 : (int)ResolveOperation(source));
                 hash.Append(source != null ? source.GetType().FullName : "missing");
 
                 if (source == null) continue;
@@ -339,14 +330,9 @@ namespace CompositeCollider3D
             }
         }
 
-        private static Collider ResolveCollider(SourceEntry entry) =>
-            entry.source != null
-                ? entry.source.SourceCollider
-                : entry.collider;
-
-        private static BooleanOperation ResolveOperation(SourceEntry entry) =>
-            entry.source != null
-                ? entry.source.Operation
+        private static BooleanOperation ResolveOperation(Collider collider) =>
+            collider != null && collider.TryGetComponent<CompositeColliderSource3D>(out var source)
+                ? source.Operation
                 : BooleanOperation.Merge;
 
         public Mesh[] GetGeneratedMeshes() => _generatedMeshes.ToArray();
