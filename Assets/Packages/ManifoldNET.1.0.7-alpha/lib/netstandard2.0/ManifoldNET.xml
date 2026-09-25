@@ -1,0 +1,1547 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ManifoldNET</name>
+    </assembly>
+    <members>
+        <member name="T:ManifoldNET.BoolOperationType">
+            <summary>
+            Bool operation options.
+            </summary>
+            <remarks>
+            <list type="number">
+            <item>
+            Contains Add (Union)
+            </item>
+            <item>
+            Subtract (Difference)
+            </item>
+            <item>
+            Intersect.
+            </item>
+            </list>
+            </remarks>
+        </member>
+        <member name="F:ManifoldNET.BoolOperationType.Add">
+            <summary>
+            Add(Union).
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.BoolOperationType.Subtract">
+            <summary>
+            Subtract(Difference).
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.BoolOperationType.Intersect">
+            <summary>
+            Intersect.
+            </summary>
+        </member>
+        <member name="T:ManifoldNET.BoundingBox">
+            <summary>
+            BoundingBox that contains min and max value.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.BoundingBox.Min">
+            <summary>
+            Min value of bounding box.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.BoundingBox.Max">
+            <summary>
+            Max value of bounding box.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.BoundingBox.#ctor(ManifoldNET.Vector3,ManifoldNET.Vector3)">
+            <summary>
+            Initializes a new instance of bounding box.
+            </summary>
+            <param name="min">Min value.</param>
+            <param name="max">Max value.</param>
+        </member>
+        <member name="P:ManifoldNET.BoundingBox.Size">
+            <summary>
+            Gets the dimensions of the bounding box represented by this instance.
+            </summary>
+            <value>
+            A <see cref="T:ManifoldNET.Vector3"/> representing the size (dimensions) of the bounding box.
+            </value>
+        </member>
+        <member name="M:ManifoldNET.BoundingBox.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="M:ManifoldNET.BoundingBox.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.CrossSection">
+            <summary>
+            Two-dimensional cross-sections guaranteed to be without self-intersections,
+            or overlaps between polygons(from construction onwards). This class makes
+            use of the <see href="http://www.angusj.com/clipper2/Docs/Overview.htm">Clipper2</see>
+            library for polygon clipping(boolean) and offsetting operations.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.#ctor">
+            <summary>
+            Cross-section <see cref="T:ManifoldNET.CrossSection"/>
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.#ctor(ManifoldNET.SimplePolygon,FillRule)">
+            <summary>
+            The cross-section <see cref="T:ManifoldNET.CrossSection"/> of the Simple polygon<see cref="T:ManifoldNET.SimplePolygon"/>
+            </summary>
+            <param name="simplePolygon"></param>
+            <param name="fillRule">Fill rule.</param>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.#ctor(ManifoldNET.Polygons,FillRule)">
+            <summary>
+            The cross-section <see cref="T:ManifoldNET.CrossSection"/> of the multiple polygon<see cref="T:ManifoldNET.SimplePolygon"/>
+            </summary>
+            <param name="manifoldPolygons"></param>
+            <param name="fr"></param>
+        </member>
+        <member name="P:ManifoldNET.CrossSection.Area">
+            <summary>
+            Area.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.CrossSection.VerticesNumber">
+            <summary>
+            Number of vertices.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.CrossSection.ContourNumber">
+            <summary>
+            Number of contours.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.CrossSection.IsEmpty">
+            <summary>
+            Is empty of this <see cref="T:ManifoldNET.CrossSection"/>
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Bounds">
+            <summary>
+            Gets rectangle bounds of this <see cref="T:ManifoldNET.CrossSection"/>.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Polygons">
+            <summary>
+            Gets <see cref="M:ManifoldNET.CrossSection.Polygons"/> of this <see cref="M:ManifoldNET.CrossSection.Polygons"/>.
+            </summary>
+            <returns><see cref="M:ManifoldNET.CrossSection.Polygons"/></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Copy">
+            <summary>
+            Create new <see cref="T:ManifoldNET.CrossSection"/> instance.
+            </summary>
+            <returns>Returns a new copy.</returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Square(System.Single,System.Single,System.Boolean)">
+            <summary>
+            Create a new square <see cref="T:ManifoldNET.CrossSection"/>.
+            </summary>
+            <param name="x">With value.</param>
+            <param name="y">Height value.</param>
+            <param name="center">
+            True makes a square center in (0,0),
+            False makes start point is (0,0).</param>
+            <returns>New <see cref="T:ManifoldNET.CrossSection"/>.</returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Circle(System.Single,System.Int32)">
+            <summary>
+            Create a circle <see cref="T:ManifoldNET.CrossSection"/>.
+            </summary>
+            <param name="radius">Radius.</param>
+            <param name="circularSegments"><see cref="M:ManifoldNET.Quality.GetCurcularSegments(System.Single)"/>.</param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Boolean(ManifoldNET.CrossSection,ManifoldNET.BoolOperationType)">
+            <summary>
+            Boolean with another <see cref="T:ManifoldNET.CrossSection"/>.
+            </summary>
+            <param name="b">Another <see cref="T:ManifoldNET.CrossSection"/>.</param>
+            <param name="op">Op type.</param>
+            <returns>New <see cref="T:ManifoldNET.CrossSection"/></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Union(ManifoldNET.CrossSection)">
+            <summary>
+            Union operation.
+            </summary>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Difference(ManifoldNET.CrossSection)">
+            <summary>
+            Difference operation.
+            </summary>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Intersection(ManifoldNET.CrossSection)">
+            <summary>
+            Intersection operation.
+            </summary>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Hull">
+            <summary>
+            Convex hull.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Translate(System.Single,System.Single)">
+            <summary>
+            Translate <see cref="T:ManifoldNET.CrossSection"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Rotate(System.Single)">
+            <summary>
+            Rotate.
+            </summary>
+            <param name="degrees"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Scale(System.Single,System.Single)">
+            <summary>
+            Scale.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Mirror(System.Single,System.Single)">
+            <summary>
+            Mirror.
+            </summary>
+            <param name="axisX"></param>
+            <param name="axisY"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Transform(System.Single,System.Single,System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Transform.
+            </summary>
+            <param name="x1"></param>
+            <param name="y1"></param>
+            <param name="x2"></param>
+            <param name="y2"></param>
+            <param name="x3"></param>
+            <param name="y3"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Decompose">
+            <summary>
+            Decompose.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Simplify(System.Double)">
+            <summary>
+            Simplify.
+            </summary>
+            <param name="epsilon"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Offset(System.Double,ManifoldNET.JoinType,System.Double,System.Int32)">
+            <summary>
+            Offset.
+            </summary>
+            <param name="delta"></param>
+            <param name="jt"></param>
+            <param name="miterLimit"></param>
+            <param name="circularSegments"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSection.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.CrossSectionArray">
+            <summary>
+            A collection of cross-sections <see cref="T:ManifoldNET.CrossSectionArray"/>
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.#ctor">
+            <summary>
+            Empty <see cref="T:ManifoldNET.CrossSectionArray"/>
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.#ctor(System.Int32)">
+            <summary>
+            Constructs <see cref="T:ManifoldNET.CrossSectionArray"/>
+            </summary>
+            <param name="sz"></param>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.#ctor(System.Collections.Generic.IReadOnlyList{ManifoldNET.CrossSection})">
+            <summary>
+            Create a <see cref="T:ManifoldNET.CrossSectionArray"/> by <see cref="T:System.Collections.Generic.IReadOnlyList`1"/>
+            </summary>
+            <param name="crossSections"></param>
+        </member>
+        <member name="P:ManifoldNET.CrossSectionArray.Length">
+            <summary>
+            Length of this array.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.CrossSectionArray.Item(System.Int32)">
+            <summary>
+            The <see cref="T:ManifoldNET.CrossSection"/> from the set of cross-sections <see cref="T:ManifoldNET.CrossSectionArray"/> according to the index
+            </summary>
+            <param name="index"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.Reserve(System.Int32)">
+            <summary>
+            Reverse.
+            </summary>
+            <param name="sz"></param>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.PushBack(ManifoldNET.CrossSection)">
+            <summary>
+            Push back.
+            </summary>
+            <remarks>
+            Append an <see cref="T:ManifoldNET.CrossSection"/> to current <see cref="T:ManifoldNET.CrossSectionArray"/>.
+            </remarks>
+            <param name="crossSection"></param>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.BatchBoolean(ManifoldNET.BoolOperationType)">
+            <summary>
+            Batch boolean.
+            </summary>
+            <param name="op"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.BatchHull">
+            <summary>
+            Batch hull.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.Compose">
+            <summary>
+            Compose.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.CrossSectionArray.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.ExportOptions">
+            <summary>
+            Represents the options for exporting 3D models.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.ExportOptions.Faceted">
+            <summary>
+            Gets or sets a value indicating whether the exported model should be faceted.
+            Faceted models have sharp edges between faces, as opposed to smooth shading.
+            </summary>
+            <value>
+            <c>true</c> if the model should be faceted; otherwise, <c>false</c>.
+            </value>
+        </member>
+        <member name="P:ManifoldNET.ExportOptions.Material">
+            <summary>
+            Gets or sets the material to be used for the exported model.
+            </summary>
+            <value>
+            An instance of the <see cref="P:ManifoldNET.ExportOptions.Material"/> class representing the material properties.
+            </value>
+        </member>
+        <member name="T:ManifoldNET.IntVector3">
+            <summary>
+            Int vector3.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.IntVector3.x">
+            <summary>
+            X value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.IntVector3.y">
+            <summary>
+            Y value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.IntVector3.z">
+            <summary>
+            Z value.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.IntVector3.#ctor(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.IntVector3"/>.
+            </summary>
+        </member>
+        <member name="T:ManifoldNET.JoinType">
+            <summary>
+            Filling rules defining which polygon sub-regions are considered to be
+            inside a given polygon, and which sub-regions will not(based on winding
+            numbers). See the[Clipper2
+            docs](http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm)
+            for a detailed explanation with illustrations.
+            </summary>
+            <remarks>
+            Adapted from Clipper2 docs:
+            <see href="http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm"/>
+            (Copyright © 2010-2023 Angus Johnson)
+            </remarks>
+            <summary>
+            Specifies the treatment of path/contour joins (corners) when offsetting
+            CrossSections.See the
+            <see href="http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/JoinType.htm">Clipper2 doc</see>
+            for illustrations.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.JoinType.Square">
+            <summary>
+            Squaring is applied uniformly at all joins where the internal
+            join angle is less than 90 degrees. The squared edge will be at
+            exactly the offset distance from the join vertex.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.JoinType.Round">
+            <summary>
+            Rounding is applied to all joins that have convex external
+            angles, and it maintains the exact offset distance from the join
+            vertex.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.JoinType.Miter">
+            <summary>
+            There's a necessary limit to mitered joins (to avoid narrow
+            angled joins producing excessively long and narrow
+            <see href="http://www.angusj.com/clipper2/Docs/Units/Clipper.Offset/Classes/ClipperOffset/Properties/MiterLimit.htm">spikes</see>.
+            So where mitered joins would exceed a given maximum miter distance
+            (relative to the offset distance), these are 'squared' instead.
+            </summary>
+        </member>
+        <member name="T:ManifoldNET.Manifold">
+            <summary>
+            Core class of this Manifold.NET.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Cube(System.Single,System.Single,System.Single,System.Boolean)">
+            <summary>
+            Generates a cube <see cref="T:ManifoldNET.Manifold"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+            <param name="center">If it makes (0, 0) centers.</param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Cylinder(System.Single,System.Single,System.Single,System.Int32,System.Boolean)">
+            <summary>
+            Generates a cylinder <see cref="T:ManifoldNET.Manifold"/>.
+            </summary>
+            <param name="height"></param>
+            <param name="radiusLow"></param>
+            <param name="radiusHigh"></param>
+            <param name="circularSegments"></param>
+            <param name="center"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Sphere(System.Single,System.Int32)">
+            <summary>
+            Generates a sphere <see cref="T:ManifoldNET.Manifold"/>.
+            </summary>
+            <param name="radius"></param>
+            <param name="circularSegments"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Smooth(ManifoldNET.MeshGL,System.Int32@,System.Single[],System.Int32)">
+            <summary>
+            Smooth.
+            </summary>
+            <param name="mesh"></param>
+            <param name="halfEdges"></param>
+            <param name="smoothness"></param>
+            <param name="nEdges"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Create(ManifoldNET.MeshGL)">
+            <summary>
+            Convert a MeshGL into a Manifold, retaining its properties and merging only
+            the positions according to the merge vectors.
+            </summary>
+            <remarks>
+            All fields are read, making this structure suitable for a lossless round-trip
+            of data from GetMeshGL.For multi-material input, use ReserveIDs to set a
+            unique originalID for each material, and sort the materials into triangle
+            runs.
+            </remarks>
+            <param name="mesh">meshGL The input MeshGL.</param>
+            <returns>Returns an empty Manifold
+            and set an Error Status if the result is not an oriented 2-manifold. Will
+            collapse degenerate triangles and unnecessary vertices.</returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Extrude(ManifoldNET.Polygons,System.Single,System.Int32,System.Single,System.Single,System.Single)">
+            <summary>
+            Constructs a manifold from a set of polygons by extruding them along the
+            Z-axis.
+            Note that high twistDegrees with small nDivisions may cause
+            self-intersection.This is not checked here, and it is up to the user to
+            choose the correct parameters.
+            </summary>
+            <param name="crossSection">A set of non-overlapping polygons to extrude.</param>
+            <param name="height">Z-extent of extrusion.</param>
+            <param name="slices">Number of extra copies of the crossSection to insert into
+            the shape vertically; especially useful in combination with twistDegrees to
+            avoid interpolation artifacts.Default is none.</param>
+            <param name="twistDegrees">Amount to twist the top crossSection relative to the
+            bottom, interpolated linearly for the divisions in between.</param>
+            <param name="scale_x"></param>
+            <param name="scale_y"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Revolve(ManifoldNET.Polygons,System.Int32)">
+            <summary>
+            Revolve.
+            </summary>
+            <param name="crossSection"></param>
+            <param name="circularSegments"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Compose(ManifoldNET.ManifoldArray)">
+            <summary>
+            Compose.
+            </summary>
+            <param name="manifolds"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Compose(System.Collections.Generic.IEnumerable{ManifoldNET.Manifold})">
+            <summary>
+            Compose.
+            </summary>
+            <param name="manifolds"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Decompose_internal">
+            <summary>
+            Decompose.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Decompose">
+            <summary>
+            Decompose.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="P:ManifoldNET.Manifold.MeshGL">
+            <summary>
+            The most complete output of this library, returning a MeshGL that is designed
+            to easily push into a renderer, including all interleaved vertex properties
+            that may have been input.It also includes relations to all the input meshes
+            that form a part of this result and the transforms applied to each.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.AsOriginal">
+            <summary>
+            This function condenses all coplanar faces in the relation, and
+            collapses those edges.In the process the relation to ancestor meshes is lost
+            and this new Manifold is marked an original.Properties are preserved, so if
+            they do not match across an edge, that edge will be kept.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.OriginalID">
+            <summary>
+            If this mesh is an original, this returns its meshID that can be referenced
+            by product manifolds' MeshRelation. If this manifold is a product, this
+            returns -1.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.Status">
+            <summary>
+            Returns the reason for an input Mesh producing an empty Manifold. This Status
+            only applies to Manifolds newly-created from an input Mesh - once they are
+            combined into a new Manifold via operations, the status reverts to NoError,
+            simply processing the problem mesh as empty.Likewise, empty meshes may still
+            show NoError, for instance, if they are small enough relative to their
+            precision to be collapsed to nothing.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.IsEmpty">
+            <summary>
+            Does the Manifold have any triangles?
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.VerticesNumber">
+            <summary>
+            The number of vertices in the Manifold.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.EdgeNumber">
+            <summary>
+            The number of edges in the Manifold.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.TriangleNumber">
+            <summary>
+            The number of triangles in the Manifold.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.Genus">
+            <summary>
+            The genus is a topological property of the manifold, representing the number
+            of "handles". A sphere is 0, torus 1, etc. It is only meaningful for a single
+            mesh, so it is best to call Decompose() first.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.Properties">
+            <summary>
+            Returns the surface area and volume of the manifold.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.BoundingBox">
+            <summary>
+            Returns the axis-aligned bounding box of all the Manifold's vertices.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Manifold.Precision">
+            <summary>
+            Returns the precision of this Manifold's vertices, which tracks the
+            approximate rounding error over all the transforms and operations that have
+            led to this state.Any triangles that are collinear within this precision are
+            considered degenerate and removed. This is the value of epsilon; defining
+            <see href="https://github.com/elalish/manifold/wiki/Manifold-Library#definition-of-%CE%B5-valid">epsilon;-valid</see>
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.ReserveIDs(System.Int32)">
+            <summary>
+            Returns the first of n sequential new unique mesh IDs for marking sets of
+            triangles that can be looked up after further operations.Assign to
+            MeshGL.runOriginalID vector.
+            </summary>
+            <param name="n"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.SetProperties(System.Int32,ManifoldNET.Manifold.ManifoldVec3Delegate)">
+            <summary>
+            Create a new copy of this manifold with updated vertex properties by
+            supplying a function that takes the existing position and properties as
+            input.You may specify any number of output properties, allowing creation and
+            removal of channels.Note: undefined behavior will result if you read past
+            the number of input properties or write past the number of output properties.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.CalculateCurvature(System.Int32,System.Int32)">
+            <summary>
+            Curvature is the inverse of the radius of curvature, and signed such that
+            positive is convex, and negative is concave. There are two orthogonal
+            principal curvatures at any point on a manifold, with one maximum and the
+            other minimum.Gaussian curvature is their product, while mean
+            curvature is their sum. This approximates them for every vertex and assigns
+            them as vertex properties on the given channels.
+            </summary>
+            <param name="gaussianIdx">
+            The property channel index in which to store the Gaussian
+            curvature.An index &lt; 0 will be ignored (stores nothing). The property set
+            will be automatically expanded to include the channel index specified.
+            </param>
+            <param name="meanIdx">
+             meanIdx The property channel index in which to store the mean
+            curvature.An index &lt; 0 will be ignored (stores nothing). The property set
+            will be automatically expanded to include the channel index specified.
+            </param>
+        </member>
+        <member name="M:ManifoldNET.Manifold.BooleanOperation(ManifoldNET.Manifold,ManifoldNET.Manifold,ManifoldNET.BoolOperationType)">
+             <summary>
+             The central operation of this library: the Boolean combines two manifolds
+             into another by calculating their intersections and removing the unused
+             portions.
+             <see href="https://github.com/elalish/manifold/wiki/Manifold-Library#definition-of-%CE%B5-valid">epsilon</see>
+             inputs will produce epsilon;-valid output. epsilon;-invalid input may fail
+             triangulation.
+            
+             These operations are optimized to produce nearly instant results if either
+             input is empty or their bounding boxes do not overlap.
+             </summary>
+             <param name="a"></param>
+             <param name="b"></param>
+             <param name="boolOperationType">The type of operation to perform.</param>
+             <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.BatchBoolOperation(ManifoldNET.ManifoldArray,ManifoldNET.BoolOperationType)">
+            <summary>
+            Perform the given boolean operation on a list of Manifolds. In case of
+            Subtract, all Manifolds in the tail are difference from the head.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.BatchBoolOperation(System.Collections.Generic.IEnumerable{ManifoldNET.Manifold},ManifoldNET.BoolOperationType)">
+            <summary>
+            Perform the given boolean operation on a list of Manifolds. In case of
+            Subtract, all Manifolds in the tail are difference from the head.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Union(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Union.
+            </summary>
+            <param name="a"></param>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Difference(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Difference.
+            </summary>
+            <param name="a"></param>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Intersection(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Intersection.
+            </summary>
+            <param name="a"></param>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Split(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Split cuts this manifold in two using the cutter manifold. The first result
+            is the intersection, second is the difference.This is more efficient than
+            doing them separately.
+            </summary>
+            <param name="a"></param>
+            <param name="b"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.SplitByPlane(System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Convenient version of Split() for a half-space.
+            </summary>
+            <remarks>
+            This vector is normal to the cutting plane and its length does
+            not matter.The first result is in the direction of this vector, the second
+            result is on the opposite side.
+            </remarks>
+            <param name="normalX"></param>
+            <param name="normalY"></param>
+            <param name="normalZ"></param>
+            <param name="offset">The distance of the plane from the origin in the
+            direction of the normal vector.</param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Slice(System.Single)">
+            <summary>
+            Slice mesh as a 2D <see cref="T:ManifoldNET.CrossSection"/> from 3D in given height.
+            </summary>
+            <param name="height">Slice height.</param>
+            <returns>A new <see cref="T:ManifoldNET.CrossSection"/></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Project">
+            <summary>
+            Project manifold as a <see cref="T:ManifoldNET.CrossSection"/>.
+            </summary>
+            <returns>A new <see cref="T:ManifoldNET.CrossSection"/>.</returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Hull">
+            <summary>
+            Convex hull.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.HullPoints(ManifoldNET.Vector3[])">
+            <summary>
+            Create 3d hull by points.
+            </summary>
+            <param name="points">Points.</param>
+            <returns><see cref="T:ManifoldNET.Manifold"/>.</returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Translate(System.Single,System.Single,System.Single)">
+            <summary>
+            Move this Manifold in space. This operation can be chained. Transforms are
+            combined and applied lazily.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Rotate(System.Single,System.Single,System.Single)">
+            <summary>
+            Applies an Euler angle rotation to the manifold, first about the X axis, then
+            Y, then Z, in degrees.We use degrees so that we can minimize rounding error,
+            and eliminate it completely for any multiples of 90 degrees.Additionally,
+            more efficient code paths are used to update the manifold when the transforms
+            only rotate by multiples of 90 degrees.This operation can be chained.
+            Transforms are combined and applied lazily.
+            </summary>
+            <param name="x">xDegrees First rotation, degrees about the X-axis.</param>
+            <param name="y">yDegrees Second rotation, degrees about the Y-axis.</param>
+            <param name="z">zDegrees Third rotation, degrees about the Z-axis.</param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Scale(System.Single,System.Single,System.Single)">
+            <summary>
+            Scale this Manifold in space. This operation can be chained. Transforms are
+            combined and applied lazily.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Transform(System.Single,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Transform this Manifold in space. The first three columns form a 3x3 matrix
+            transform and the last is a translation vector.This operation can be
+            chained.Transforms are combined and applied lazily.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Mirror(System.Single,System.Single,System.Single)">
+            <summary>
+             Mirror this Manifold over the plane described by the unit form of the given
+            normal vector.If the length of the normal is zero, an empty Manifold is
+            returned.This operation can be chained.Transforms are combined and applied
+            lazily.
+            </summary>
+            <param name="nx">X value of the normal vector of the plane to be mirrored over.</param>
+            <param name="ny">Y value of the normal vector of the plane to be mirrored over</param>
+            <param name="nz">Z value of the normal vector of the plane to be mirrored over</param>
+        </member>
+        <member name="T:ManifoldNET.Manifold.ManifoldVec3Delegate">
+            <summary>
+            <see cref="M:ManifoldNET.Manifold.Wrap(ManifoldNET.Manifold.ManifoldVec3Delegate)"/>
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Wrap(ManifoldNET.Manifold.ManifoldVec3Delegate)">
+            <summary>
+            This function does not change the topology, but allows the vertices to be
+            moved according to any arbitrary input function.It is easy to create a
+            function that warps a geometrically valid object into one which overlaps, but
+            that is not checked here, so it is up to the user to choose their function
+            with discretion.
+            </summary>
+            <param name="manifoldVec3Delegate">A function that modifies a given vertex position.</param>
+        </member>
+        <member name="M:ManifoldNET.Manifold.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="M:ManifoldNET.Manifold.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="M:ManifoldNET.Manifold.op_Addition(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Overloaded + operator to perform a boolean addition operation on two <see cref="T:ManifoldNET.Manifold"/> objects.
+            </summary>
+            <param name="left">The left operand, a Manifold object.</param>
+            <param name="right">The right operand, a Manifold object.</param>
+            <returns>Returns a new Manifold object that is the result of the boolean addition operation.</returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.op_Subtraction(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Overloaded - operator to perform a boolean subtraction operation on two <see cref="T:ManifoldNET.Manifold"/> objects.
+            </summary>
+            <param name="left">The left operand, a Manifold object.</param>
+            <param name="right">The right operand, a Manifold object.</param>
+            <returns>Returns a new Manifold object that is the result of the boolean subtraction operation.</returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.op_BitwiseAnd(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Overloaded &amp; operator to perform a boolean intersection operation on two Manifold objects.
+            </summary>
+            <param name="left">The left operand, a Manifold object.</param>
+            <param name="right">The right operand, a Manifold object.</param>
+            <returns>Returns a new Manifold object that is the result of the boolean intersection operation.</returns>
+        </member>
+        <member name="M:ManifoldNET.Manifold.op_ExclusiveOr(ManifoldNET.Manifold,ManifoldNET.Manifold)">
+            <summary>
+            Overloaded ^ operator to perform a boolean intersection operation on two Manifold objects.
+            </summary>
+            <remarks>
+            Same as <see cref="M:ManifoldNET.Manifold.op_BitwiseAnd(ManifoldNET.Manifold,ManifoldNET.Manifold)"/>
+            </remarks>
+            <param name="left">The left operand, a Manifold object.</param>
+            <param name="right">The right operand, a Manifold object.</param>
+            <returns>Returns a new Manifold object that is the result of the boolean intersection operation.</returns>
+        </member>
+        <member name="T:ManifoldNET.ManifoldArray">
+            <summary>
+            Manifold list.
+            Usage: <see cref="M:ManifoldNET.Manifold.BatchBoolOperation(ManifoldNET.ManifoldArray,ManifoldNET.BoolOperationType)"/>
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.ManifoldArray.#ctor(System.Collections.Generic.IReadOnlyList{ManifoldNET.Manifold})">
+            <summary>
+            Create <see cref="T:ManifoldNET.ManifoldArray"/> from a list.
+            </summary>
+            <param name="manifolds"></param>
+            <exception cref="T:System.ArgumentNullException"></exception>
+        </member>
+        <member name="P:ManifoldNET.ManifoldArray.Item(System.Int32)">
+            <summary>
+            Gets <see cref="T:ManifoldNET.Manifold"/> by index.
+            </summary>
+            <param name="index">Index.</param>
+        </member>
+        <member name="P:ManifoldNET.ManifoldArray.Length">
+            <summary>
+            The number of <see cref="T:ManifoldNET.Manifold"/>.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.ManifoldArray.Reverse">
+            <summary>
+            Not work? How to use?
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.ManifoldArray.GetEnumerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:ManifoldNET.ManifoldArray.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.ManifoldError">
+            <summary>
+            Manifold status.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.NoError">
+            <summary>
+            No error.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.NonFiniteVertex">
+            <summary>
+            Non-finite vertex.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.NotManifold">
+            <summary>
+            Not manifold.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.VertexIndexOutOfBounds">
+            <summary>
+            Vertex index out of bounds.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.PropertiesWrongLength">
+            <summary>
+            Properties have the wrong length.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.MissingPositionProperties">
+            <summary>
+            Less than three properties.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.MergeVectorsDifferentLengths">
+            <summary>
+            Merge vectors have different lengths.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.MergeIndexOutOfBounds">
+            <summary>
+            Merge index out of bounds.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.TransformWrongLength">
+            <summary>
+            Transform vector has the wrong length.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.RunIndexWrongLength">
+            <summary>
+            Run index vector has the wrong length.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.FaceIdWrongLength">
+            <summary>
+            Face ID vector has the wrong length.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldError.InvalidConstruction">
+            <summary>
+            Manifold constructed with invalid parameters.
+            </summary>
+        </member>
+        <member name="T:ManifoldNET.ManifoldManifoldPair">
+            <summary>
+            <see cref="T:ManifoldNET.Manifold"/> pair.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.ManifoldManifoldPair.First">
+            <summary>
+            First.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.ManifoldManifoldPair.Second">
+            <summary>
+            Second.
+            </summary>
+        </member>
+        <member name="T:ManifoldNET.ManifoldObject">
+            <summary>
+            Base object for manifold.
+            </summary>
+            <remarks>
+            Initializes a base object.
+            </remarks>
+        </member>
+        <member name="F:ManifoldNET.ManifoldObject._pointer">
+            <summary>
+            Pointer for this object.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.ManifoldObject.#ctor(System.IntPtr)">
+            <param name="pointer"></param>
+        </member>
+        <member name="M:ManifoldNET.ManifoldObject.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:ManifoldNET.ManifoldObject.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:ManifoldNET.ManifoldObject.Delete(System.IntPtr)">
+            <summary>
+            Delete by pointer.
+            </summary>
+            <param name="pointer"></param>
+        </member>
+        <member name="T:ManifoldNET.ManifoldProperties">
+            <summary>
+            Manifold properties.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldProperties.surface_area">
+            <summary>
+            Surface area.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.ManifoldProperties.volume">
+            <summary>
+            Volume.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.ManifoldProperties.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.Material">
+            <summary>
+            Represents the material properties of a 3D object.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Material.Roughness">
+            <summary>
+            Gets or sets the roughness of the material.
+            Roughness affects how much light is scattered when it hits the surface.
+            </summary>
+            <value>
+            The roughness value, typically ranging from 0.0 (smooth) to 1.0 (rough).
+            </value>
+        </member>
+        <member name="P:ManifoldNET.Material.Metalness">
+            <summary>
+            Gets or sets the metalness of the material.
+            Metalness determines whether the material behaves like a metal.
+            </summary>
+            <value>
+            The metalness value, ranging from 0.0 (non-metal) to 1.0 (metal).
+            </value>
+        </member>
+        <member name="P:ManifoldNET.Material.Color">
+            <summary>
+            Gets or sets the base color of the material.
+            </summary>
+            <value>
+            A <see cref="T:ManifoldNET.Vector4"/> representing the RGBA color of the material.
+            Each component should be in the range [0.0, 1.0].
+            </value>
+        </member>
+        <member name="P:ManifoldNET.Material.VertColor">
+            <summary>
+            Gets or sets the per-vertex colors of the material.
+            If set, these colors will be used instead of the base color for each vertex.
+            </summary>
+            <value>
+            An array of <see cref="T:ManifoldNET.Vector4"/> representing the RGBA colors for each vertex.
+            Each component should be in the range [0.0, 1.0].
+            </value>
+        </member>
+        <member name="T:ManifoldNET.MeshGLData">
+            <summary>
+            An alternative to MeshData for output suitable for pushing into graphics
+            libraries directly.This may not be manifold since the verts are duplicated
+            along property boundaries that do not match.The additional merge vectors
+            store this missing information, allowing the manifold to be reconstructed.
+            </summary>
+            <remarks>
+            src\manifold\include\manifold.h
+            </remarks>
+        </member>
+        <member name="F:ManifoldNET.MeshGLData.numProp">
+            <summary>
+            Number of properties per vertex, always >= 3.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.MeshGLData.vertProperties">
+            <summary>
+            Flat, GL-style interleaved list of all vertex properties: propVal =
+            vertProperties[vert * numProp + propIdx]. The first three properties are
+            always the position x, y, z.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.MeshGLData.triVerts">
+            <summary>
+            The vertex indices of the three triangle corners in CCW (from the outside)
+            order, for each triangle.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.MeshGLData.halfedgeTangent">
+            <summary>
+            Optional: The X-Y-Z-W weighted tangent vectors for smooth Refine(). If
+            non-empty, must be exactly four times as long as MeshData.triVerts. Indexed
+            as 4 * (3 * tri + i) + j, i &lt; 3, j &lt; 4, representing the tangent value
+            Mesh.triVerts[tri][i] along the CCW edge. If empty, mesh is faceted.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.MeshGLData.#ctor(System.Single[],System.UInt32[],System.UInt32,System.Single[])">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.MeshGLData"/>.
+            </summary>
+            <param name="vertProperties">Vertices properties.</param>
+            <param name="triVerts">Triangle vertices.</param>
+            <param name="halfedgeTangent"></param>
+            <param name="numProp"></param>
+        </member>
+        <member name="T:ManifoldNET.MeshGL">
+            <summary>
+            MeshGL
+            </summary>
+        </member>
+        <member name="T:ManifoldNET.MeshGL.SdfDelegate">
+            <summary>
+            Delegate that returns a float value.
+            </summary>
+            <param name="x">X value.</param>
+            <param name="y">Y value.</param>
+            <param name="z">Z value.</param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.MeshGL.#ctor(ManifoldNET.MeshGLData)">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.MeshGL"/>.
+            </summary>
+            <param name="meshGL">mesh data.</param>
+            <exception cref="T:System.ArgumentException">Error properties length.</exception>
+        </member>
+        <member name="M:ManifoldNET.MeshGL.#ctor(System.Single[],System.UInt32[],System.UInt32,System.Single[])">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.MeshGL"/>.
+            </summary>
+            <param name="vertProperties"></param>
+            <param name="triVerts"></param>
+            <param name="numProp"></param>
+            <param name="halfedgeTangent"></param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="vertProperties"/> is null.</exception>
+            <exception cref="T:System.ArgumentException">Array length is not right.</exception>
+        </member>
+        <member name="M:ManifoldNET.MeshGL.LevelSet(ManifoldNET.MeshGL.SdfDelegate,ManifoldNET.BoundingBox,System.Single,System.Single,System.Boolean)">
+             <summary>
+            
+             </summary>
+             <param name="sdf"></param>
+             <param name="boundingBox"></param>
+             <param name="edgeLength"></param>
+             <param name="level"></param>
+             <param name="seq"></param>
+             <returns></returns>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.PropertiesNumber">
+            <summary>
+            Length of properties.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.VerticesNumber">
+            <summary>
+            Number of vertices.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.TriangleNumber">
+            <summary>
+            Number of triangles.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.VerticesPropertiesLength">
+            <summary>
+            Length of vertices properties.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.TriangleLength">
+            <summary>
+            Lengt of triangles.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.MergeLength">
+            <summary>
+            Merge length.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.RunIndexLength">
+            <summary>
+            Run index length.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.RunOriginalIdLength">
+            <summary>
+            Run original id length.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.RunTransformLength">
+            <summary>
+            Run transform length.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.FaceIdLength">
+            <summary>
+            Face id length.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.TangentLength">
+            <summary>
+            Tangent length.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.VerticesProperties">
+            <summary>
+            Vertices of properties.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.MeshGL.TriangleVertices">
+            <summary>
+            Triangles vertices.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.MeshGL.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.Polygons">
+            <summary>
+            A complex polygon composed of multiple <see cref="T:ManifoldNET.SimplePolygon"/>s.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Polygons.#ctor(ManifoldNET.SimplePolygon[])">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Polygons"/>.
+            </summary>
+            <param name="simplePolygons">Array of <see cref="T:ManifoldNET.SimplePolygon"/>.</param>
+        </member>
+        <member name="M:ManifoldNET.Polygons.Count">
+            <summary>
+            <see cref="T:ManifoldNET.SimplePolygon"/> Count.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Polygons.VecCountOfSimplePolygon(System.Int32)">
+            <summary>
+            <see cref="T:ManifoldNET.Vector2"/> count of <see cref="T:ManifoldNET.SimplePolygon"/>.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Polygons.GetSimplePolygon(System.Int32)">
+            <summary>
+            Gets <see cref="T:ManifoldNET.SimplePolygon"/> by index.
+            </summary>
+            <param name="idx"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Polygons.GetPoint(System.Int32,System.Int32)">
+            <summary>
+            Gets an <see cref="T:ManifoldNET.Vector2"/> in one of <see cref="T:ManifoldNET.SimplePolygon"/>.
+            </summary>
+            <param name="simplePolygonIdx"><see cref="T:ManifoldNET.SimplePolygon"/> index of this.</param>
+            <param name="pointIdxOfSimplePolygon"><see cref="T:ManifoldNET.Vector2"/> index of <see cref="T:ManifoldNET.SimplePolygon"/>.</param>
+            <returns><see cref="T:ManifoldNET.Vector2"/> needed.</returns>
+        </member>
+        <member name="M:ManifoldNET.Polygons.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.Quality">
+            <summary>
+            These static properties control how circular shapes are quantized by
+            default on construction. If circularSegments is specified, it takes
+            precedence. If it is zero, then instead the minimum is used of the segments
+            calculated based on edge length and angle, rounded up to the nearest
+            multiple of four. To get numbers not divisible by four, circularSegments
+            must be specified.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Quality.SetMinCircularAngle(System.Single)">
+            <summary>
+            Sets an angle constraint the default number of circular segments for the
+            <see cref="M:ManifoldNET.CrossSection.Circle(System.Single,System.Int32)"/>,
+            <see cref="M:ManifoldNET.Manifold.Cylinder(System.Single,System.Single,System.Single,System.Int32,System.Boolean)"/>,
+            <see cref="M:ManifoldNET.Manifold.Sphere(System.Single,System.Int32)"/>, and
+            <see cref="M:ManifoldNET.Manifold.Revolve(ManifoldNET.Polygons,System.Int32)"/>
+            constructors.The number of segments will be rounded up
+            to the nearest factor of four.
+            </summary>
+            <param name="angle">
+            he minimum angle in degrees between consecutive segments. The
+            angle will increase if the segments hit the minimum-edge length.
+            Default is 10 degrees.
+            </param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Quality.SetMinCircularEdgeLength(System.Single)">
+            <summary>
+            Sets a length constraint the default number of circular segments for the
+            <see cref="M:ManifoldNET.CrossSection.Circle(System.Single,System.Int32)"/>,
+            <see cref="M:ManifoldNET.Manifold.Cylinder(System.Single,System.Single,System.Single,System.Int32,System.Boolean)"/>,
+            <see cref="M:ManifoldNET.Manifold.Sphere(System.Single,System.Int32)"/>, and
+            <see cref="M:ManifoldNET.Manifold.Revolve(ManifoldNET.Polygons,System.Int32)"/>
+            constructors.The number of segments will be rounded up
+            to the nearest factor of four.
+            </summary>
+            <param name="length">
+            The minimum length of segments. The length will
+            increase if the segments hit the minimum angle.Default is 1.0.
+            </param>
+        </member>
+        <member name="M:ManifoldNET.Quality.GetCurcularSegments(System.Single)">
+            <summary>
+            Determine the result of the
+            <see cref="M:ManifoldNET.Quality.SetMinCircularAngle(System.Single)"/>,
+            <see cref="M:ManifoldNET.Quality.SetMinCircularEdgeLength(System.Single)"/> and
+            <see cref="M:ManifoldNET.Quality.SetCurcularSegments(System.Int32)"/> defaults.
+            </summary>
+            <param name="radius">
+            For a given radius of circle, determine how many default
+            segments there will be.
+            </param>
+            <returns></returns>
+        </member>
+        <member name="M:ManifoldNET.Quality.SetCurcularSegments(System.Int32)">
+            <summary>
+             Sets the default number of circular segments for the
+            <see cref="M:ManifoldNET.CrossSection.Circle(System.Single,System.Int32)"/>,
+            <see cref="M:ManifoldNET.Manifold.Cylinder(System.Single,System.Single,System.Single,System.Int32,System.Boolean)"/>,
+            <see cref="M:ManifoldNET.Manifold.Sphere(System.Single,System.Int32)"/>, and
+            <see cref="M:ManifoldNET.Manifold.Revolve(ManifoldNET.Polygons,System.Int32)"/>
+            constructors.Overrides the edge length and angle
+            constraints and sets the number of segments to exactly this value.
+            </summary>
+            <param name="number">
+            Number of circular segments. Default is 0, meaning no
+            constraint is applied.
+            </param>
+        </member>
+        <member name="T:ManifoldNET.Rect">
+            <summary>
+            Represents a rectangle with minimum and maximum coordinates.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Rect.#ctor(ManifoldNET.Vector2,ManifoldNET.Vector2)">
+            <summary>
+            Initializes a new instance of the <see cref="T:ManifoldNET.Rect"/> class with specified minimum and maximum coordinates.
+            </summary>
+            <param name="min">The minimum (bottom-left) coordinates of the rectangle.</param>
+            <param name="max">The maximum (top-right) coordinates of the rectangle.</param>
+        </member>
+        <member name="M:ManifoldNET.Rect.#ctor(System.IntPtr)">
+            <summary>
+            Initializes a new instance of the <see cref="T:ManifoldNET.Rect"/> class with a specified pointer to unmanaged memory.
+            </summary>
+            <param name="pointer">A pointer to unmanaged memory representing the rectangle.</param>
+        </member>
+        <member name="P:ManifoldNET.Rect.Min">
+            <summary>
+            Gets the minimum (bottom-left) coordinates of the rectangle.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Rect.Max">
+            <summary>
+            Gets the maximum (top-right) coordinates of the rectangle.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Rect.Size">
+            <summary>
+            Gets the size (width and height) of the rectangle.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Rect.Center">
+            <summary>
+            Gets the center coordinates of the rectangle.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.Rect.Scale">
+            <summary>
+            Gets the scale factor of the rectangle.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Rect.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.SimplePolygon">
+            <summary>
+            A closed contour composed of a set of points on a plane.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.SimplePolygon.#ctor(ManifoldNET.Vector2[])">
+            <summary>
+            Initializes a simple polygon.
+            </summary>
+            <param name="manifoldVec2sArray">List of <see cref="T:ManifoldNET.Vector2"/></param>
+        </member>
+        <member name="M:ManifoldNET.SimplePolygon.#ctor(System.IntPtr)">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.SimplePolygon"/>.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.SimplePolygon.Count">
+            <summary>
+            Points Count of polygon.
+            </summary>
+        </member>
+        <member name="P:ManifoldNET.SimplePolygon.Item(System.Int32)">
+            <summary>
+            Gets <see cref="T:ManifoldNET.Vector2"/> from index.
+            </summary>
+            <param name="idx">Index.</param>
+            <returns>Returns <see cref="T:ManifoldNET.Vector2"/></returns>
+        </member>
+        <member name="M:ManifoldNET.SimplePolygon.Delete(System.IntPtr)">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.Vector2">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Vector2"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+        </member>
+        <member name="M:ManifoldNET.Vector2.#ctor(System.Single,System.Single)">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Vector2"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+        </member>
+        <member name="F:ManifoldNET.Vector2.x">
+            <summary>
+            X value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.Vector2.y">
+            <summary>
+            Y value.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Vector2.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.Vector3">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Vector3"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+        </member>
+        <member name="M:ManifoldNET.Vector3.#ctor(System.Single,System.Single,System.Single)">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Vector3"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+        </member>
+        <member name="F:ManifoldNET.Vector3.x">
+            <summary>
+            X value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.Vector3.y">
+            <summary>
+            Y value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.Vector3.z">
+            <summary>
+            Z value.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Vector3.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:ManifoldNET.Vector4">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Vector3"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+            <param name="w"></param>
+        </member>
+        <member name="M:ManifoldNET.Vector4.#ctor(System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Initializes a new instance of <see cref="T:ManifoldNET.Vector3"/>.
+            </summary>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+            <param name="w"></param>
+        </member>
+        <member name="F:ManifoldNET.Vector4.x">
+            <summary>
+            X value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.Vector4.y">
+            <summary>
+            Y value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.Vector4.z">
+            <summary>
+            Z Value.
+            </summary>
+        </member>
+        <member name="F:ManifoldNET.Vector4.w">
+            <summary>
+            W value.
+            </summary>
+        </member>
+        <member name="M:ManifoldNET.Vector4.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:FillRule">
+            <summary>
+            Filling rules defining which polygon sub-regions are considered to be
+            inside a given polygon, and which sub-regions will not(based on winding
+            numbers). See the[Clipper2
+            docs](http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm)
+            for a detailed explanation with illustrations.
+            </summary>
+            <remarks>
+            Adapted from Clipper2 docs:
+            <see href="http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm"/>
+            (Copyright © 2010-2023 Angus Johnson)
+            </remarks>
+        </member>
+        <member name="F:FillRule.EvenOdd">
+            <summary>
+            Only odd numbered sub-regions are filled.
+            </summary>
+        </member>
+        <member name="F:FillRule.NonZero">
+            <summary>
+            Only non-zero sub-regions are filled.
+            </summary>
+        </member>
+        <member name="F:FillRule.Positive">
+            <summary>
+            Only sub-regions with winding counts &gt; 0 are filled.
+            </summary>
+        </member>
+        <member name="F:FillRule.Negative">
+            <summary>
+            Only sub-regions with winding counts &lt; 0 are filled.
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>ManifoldNET</id>
+    <version>1.0.7-alpha</version>
+    <authors>ManifoldNET</authors>
+    <icon>icon.png</icon>
+    <readme>Readme.md</readme>
+    <projectUrl>https://github.com/weianweigan/manifold-csharp/blob/dev-csharp/bindings/csharp/Readme.md</projectUrl>
+    <description>Geometry library for topological robustness.</description>
+    <tags>manifold mesh mesh booloperation geometry library topological</tags>
+    <repository type="git" url="https://github.com/weianweigan/manifold-csharp" commit="94bd588a03bf6c22c41c2bf2539b1c980e497b6e" />
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.4.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.4.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
