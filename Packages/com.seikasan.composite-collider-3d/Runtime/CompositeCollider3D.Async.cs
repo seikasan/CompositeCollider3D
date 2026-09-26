@@ -42,6 +42,7 @@ namespace CompositeCollider3D
             public long BooleanMilliseconds;
             public long OptimizationMilliseconds;
             public long DecompositionMilliseconds;
+            public bool CoacdSkippedForConvexMesh;
             public int OriginalVertexCount;
             public int OriginalTriangleCount;
             public int OptimizedVertexCount;
@@ -185,7 +186,9 @@ namespace CompositeCollider3D
                 $"mesh optimization {result.OptimizationMilliseconds} ms " +
                 $"({result.OriginalVertexCount} to {result.OptimizedVertexCount} vertices, " +
                 $"{result.OriginalTriangleCount} to {result.Merged.Indices.Length / 3} triangles), " +
-                $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {applyMs} ms); " +
+                $"CoACD {result.DecompositionMilliseconds} ms" +
+                $"{(result.CoacdSkippedForConvexMesh ? " (convex fast path)" : string.Empty)}, " +
+                $"mesh/collider apply {applyMs} ms); " +
                 $"result {merged.triangles.Length / 3} triangles, {hulls?.Count ?? 0} convex parts.", this);
         }
 
@@ -364,11 +367,25 @@ namespace CompositeCollider3D
 
                     long optimizationMs = optimizationTimer.ElapsedMilliseconds;
                     RawMesh[] hulls = null;
+                    long decompositionMs = 0;
+                    bool coacdSkippedForConvexMesh = false;
 
                     if (snapshot.Dynamic)
                     {
-                        hulls = CoacdRaw.Decompose(merged, snapshot.CoacdThreshold,
-                            snapshot.CoacdSampleResolution, snapshot.CoacdMctsIteration);
+                        int triangleCount = merged.Indices.Length / 3;
+                        float convexTolerance = Math.Max(GetMeshScale(merged.Positions) * 1e-6f, 1e-7f);
+                        if (triangleCount <= 255 && IsConvexMesh(merged, convexTolerance))
+                        {
+                            hulls = new[] { merged };
+                            coacdSkippedForConvexMesh = true;
+                        }
+                        else
+                        {
+                            long decompositionStarted = Stopwatch.GetTimestamp();
+                            hulls = CoacdRaw.Decompose(merged, snapshot.CoacdThreshold,
+                                snapshot.CoacdSampleResolution, snapshot.CoacdMctsIteration);
+                            decompositionMs = ElapsedMilliseconds(decompositionStarted);
+                        }
 
                         if (hulls.Length == 0)
                         {
@@ -388,7 +405,8 @@ namespace CompositeCollider3D
                     {
                         Merged = merged, Hulls = hulls, BooleanMilliseconds = booleanMs,
                         OptimizationMilliseconds = optimizationMs,
-                        DecompositionMilliseconds = timer.ElapsedMilliseconds - booleanMs - optimizationMs,
+                        DecompositionMilliseconds = decompositionMs,
+                        CoacdSkippedForConvexMesh = coacdSkippedForConvexMesh,
                         OriginalVertexCount = originalVertexCount,
                         OriginalTriangleCount = originalTriangleCount,
                         OptimizedVertexCount = optimizedVertexCount

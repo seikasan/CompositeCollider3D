@@ -98,6 +98,92 @@ namespace CompositeCollider3D
             return current;
         }
 
+        private static bool IsConvexMesh(RawMesh mesh, float tolerance)
+        {
+            if (!TryBuildTopology(mesh, out Dictionary<ulong, MeshEdge> edges,
+                    out _, out _, out Vector3[] normals) ||
+                !IsSingleConnectedSurface(edges, mesh.Indices.Length / 3))
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<ulong, MeshEdge> entry in edges)
+            {
+                int firstVertex = (int)(entry.Key >> 32);
+                int secondVertex = (int)(uint)entry.Key;
+                int firstOpposite = GetOppositeVertex(mesh, entry.Value.FirstTriangle,
+                    firstVertex, secondVertex);
+                int secondOpposite = GetOppositeVertex(mesh, entry.Value.SecondTriangle,
+                    firstVertex, secondVertex);
+                if (firstOpposite < 0 || secondOpposite < 0)
+                    return false;
+
+                Vector3 firstOrigin = ReadPosition(mesh.Positions,
+                    mesh.Indices[entry.Value.FirstTriangle * 3]);
+                Vector3 secondOrigin = ReadPosition(mesh.Positions,
+                    mesh.Indices[entry.Value.SecondTriangle * 3]);
+                Vector3 firstOppositePoint = ReadPosition(mesh.Positions, firstOpposite);
+                Vector3 secondOppositePoint = ReadPosition(mesh.Positions, secondOpposite);
+                if (Vector3.Dot(normals[entry.Value.FirstTriangle], firstOppositePoint - firstOrigin) > tolerance ||
+                    Vector3.Dot(normals[entry.Value.SecondTriangle], secondOppositePoint - secondOrigin) > tolerance)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsSingleConnectedSurface(Dictionary<ulong, MeshEdge> edges,
+            int triangleCount)
+        {
+            if (triangleCount == 0)
+                return false;
+
+            var adjacentTriangles = new List<int>[triangleCount];
+            for (int i = 0; i < triangleCount; i++)
+                adjacentTriangles[i] = new List<int>(3);
+
+            foreach (MeshEdge edge in edges.Values)
+            {
+                adjacentTriangles[edge.FirstTriangle].Add(edge.SecondTriangle);
+                adjacentTriangles[edge.SecondTriangle].Add(edge.FirstTriangle);
+            }
+
+            var visited = new bool[triangleCount];
+            var pending = new Stack<int>();
+            pending.Push(0);
+            visited[0] = true;
+            int visitedCount = 0;
+
+            while (pending.Count > 0)
+            {
+                int triangle = pending.Pop();
+                visitedCount++;
+                foreach (int neighbor in adjacentTriangles[triangle])
+                {
+                    if (visited[neighbor]) continue;
+                    visited[neighbor] = true;
+                    pending.Push(neighbor);
+                }
+            }
+
+            return visitedCount == triangleCount;
+        }
+
+        private static int GetOppositeVertex(RawMesh mesh, int triangle, int first, int second)
+        {
+            int offset = triangle * 3;
+            for (int i = 0; i < 3; i++)
+            {
+                int vertex = mesh.Indices[offset + i];
+                if (vertex != first && vertex != second)
+                    return vertex;
+            }
+
+            return -1;
+        }
+
         private static bool TryFindCollinearFeatureEdge(
             int vertex,
             RawMesh mesh,
