@@ -40,7 +40,11 @@ namespace CompositeCollider3D
             public RawMesh Merged;
             public RawMesh[] Hulls;
             public long BooleanMilliseconds;
+            public long OptimizationMilliseconds;
             public long DecompositionMilliseconds;
+            public int OriginalVertexCount;
+            public int OriginalTriangleCount;
+            public int OptimizedVertexCount;
         }
 
         private static readonly object NativeGenerationGate = new();
@@ -178,6 +182,9 @@ namespace CompositeCollider3D
             UnityEngine.Debug.Log(
                 $"CompositeCollider3D generation: total {totalMs} ms " +
                 $"(capture {captureMs} ms, Boolean {result.BooleanMilliseconds} ms, " +
+                $"mesh optimization {result.OptimizationMilliseconds} ms " +
+                $"({result.OriginalVertexCount} to {result.OptimizedVertexCount} vertices, " +
+                $"{result.OriginalTriangleCount} to {result.Merged.Indices.Length / 3} triangles), " +
                 $"CoACD {result.DecompositionMilliseconds} ms, mesh/collider apply {applyMs} ms); " +
                 $"result {merged.triangles.Length / 3} triangles, {hulls?.Count ?? 0} convex parts.", this);
         }
@@ -347,6 +354,15 @@ namespace CompositeCollider3D
                     using MeshGL output = accumulated.MeshGL;
                     RawMesh merged = ToRawMesh(output);
                     long booleanMs = timer.ElapsedMilliseconds;
+                    int originalTriangleCount = merged.Indices.Length / 3;
+                    var optimizationTimer = Stopwatch.StartNew();
+
+                    merged = OptimizeCollinearEdges(
+                        merged,
+                        out int originalVertexCount,
+                        out int optimizedVertexCount);
+
+                    long optimizationMs = optimizationTimer.ElapsedMilliseconds;
                     RawMesh[] hulls = null;
 
                     if (snapshot.Dynamic)
@@ -371,7 +387,11 @@ namespace CompositeCollider3D
                     return new RawResult
                     {
                         Merged = merged, Hulls = hulls, BooleanMilliseconds = booleanMs,
-                        DecompositionMilliseconds = timer.ElapsedMilliseconds - booleanMs
+                        OptimizationMilliseconds = optimizationMs,
+                        DecompositionMilliseconds = timer.ElapsedMilliseconds - booleanMs - optimizationMs,
+                        OriginalVertexCount = originalVertexCount,
+                        OriginalTriangleCount = originalTriangleCount,
+                        OptimizedVertexCount = optimizedVertexCount
                     };
                 }
                 finally
