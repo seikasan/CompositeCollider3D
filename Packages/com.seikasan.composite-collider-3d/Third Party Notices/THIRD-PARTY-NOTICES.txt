@@ -1,0 +1,18 @@
+ManifoldNET
+
+The bundled ManifoldNET managed assembly and manifoldc.dll are from the Manifold C# bindings at commit 94bd588a03bf6c22c41c2bf2539b1c980e497b6e.
+Project: https://github.com/weianweigan/manifold-csharp
+License: Apache License 2.0. See ManifoldNET-Apache-2.0.txt.
+
+Intel oneTBB
+
+The bundled tbb12.dll is distributed with the ManifoldNET Windows x64 runtime. Intel oneTBB is Copyright (c) 2018-2024 Intel Corporation and uses the Apache License 2.0. See ManifoldNET-Apache-2.0.txt and https://github.com/oneapi-src/oneTBB.
+
+System.Runtime.CompilerServices.Unsafe
+
+The bundled assembly is from the Microsoft .NET Foundation NuGet package, version 4.4.0. Its MIT license and the package's third-party notices are included alongside this file.
+Project: https://github.com/dotnet/corefx
+
+CoACD
+
+The bundled lib_coacd.dll, lib_coacd.dylib, and lib_coacd.so are built from https://github.com/SarahWeiii/CoACD at commit 9dd8431f3b2e7e4654e5a6284e3b8c36b4071c2f. That revision is distributed under the Apache License 2.0. See CoACD-Apache-2.0.txt.

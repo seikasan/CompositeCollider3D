@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="background" x1="62" y1="32" x2="1128" y2="618" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101A2B"/>
+      <stop offset="1" stop-color="#17263B"/>
+    </linearGradient>
+    <linearGradient id="solidTop" x1="590" y1="186" x2="832" y2="342" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#68E0D2"/>
+      <stop offset="1" stop-color="#4BB8D8"/>
+    </linearGradient>
+    <linearGradient id="solidSide" x1="740" y1="340" x2="845" y2="453" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2687B5"/>
+      <stop offset="1" stop-color="#205D91"/>
+    </linearGradient>
+    <linearGradient id="sourceTop" x1="181" y1="220" x2="330" y2="317" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A4B8D5"/>
+      <stop offset="1" stop-color="#7188A9"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="skewY(-30)">
+      <path d="M40 0H0V40" stroke="#7890AD" stroke-opacity=".09" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="102" y="132" width="1000" height="400" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" rx="30" fill="url(#background)"/>
+  <rect x="1" y="1" width="1198" height="628" rx="29" stroke="#91A9C8" stroke-opacity=".16" stroke-width="2"/>
+  <path d="M0 378 600 32l600 346v252H0V378Z" fill="url(#grid)"/>
+  <ellipse cx="667" cy="450" rx="382" ry="34" fill="#050B14" fill-opacity=".66" filter="url(#shadow)"/>
+
+  <!-- input solids -->
+  <g stroke="#D5E5F5" stroke-opacity=".8" stroke-width="2" stroke-linejoin="round">
+    <path d="m150 270 70-40 70 40-70 41-70-41Z" fill="url(#sourceTop)"/>
+    <path d="m150 270 70 41v83l-70-41v-83Z" fill="#536A88"/>
+    <path d="m290 270-70 41v83l70-41v-83Z" fill="#3E5472"/>
+    <path d="m256 190 51-29 52 29-52 30-51-30Z" fill="url(#sourceTop)"/>
+    <path d="m256 190 51 30v61l-51-30v-61Z" fill="#536A88"/>
+    <path d="m359 190-52 30v61l52-30v-61Z" fill="#3E5472"/>
+  </g>
+  <path d="M385 292h91" stroke="#A9BDD4" stroke-opacity=".55" stroke-width="2" stroke-dasharray="6 9"/>
+  <path d="m467 285 12 7-12 7" stroke="#A9BDD4" stroke-opacity=".75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- boolean operation mark -->
+  <circle cx="528" cy="292" r="30" fill="#1D334A" stroke="#56CFCB" stroke-opacity=".65" stroke-width="2"/>
+  <path d="M516 292h24M528 280v24" stroke="#83E8DD" stroke-width="3" stroke-linecap="round"/>
+  <path d="M565 292h41" stroke="#A9BDD4" stroke-opacity=".55" stroke-width="2" stroke-dasharray="6 9"/>
+  <path d="m597 285 12 7-12 7" stroke="#A9BDD4" stroke-opacity=".75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- concave composite: solid U-shaped body -->
+  <g stroke="#A5F4E9" stroke-opacity=".92" stroke-width="2.2" stroke-linejoin="round">
+    <!-- top face with a deep concavity -->
+    <path d="m630 226 111-64 190 110-111 65-59-34-58 34-73-42v-69Z" fill="url(#solidTop)"/>
+    <!-- front / left outer walls -->
+    <path d="m630 226 73 42v128l-73-42V226Z" fill="#318DAE"/>
+    <path d="m703 268 58 35v127l-58-34V268Z" fill="#26769F"/>
+    <!-- inner walls of the concavity -->
+    <path d="m761 303 59 34v127l-59-34V303Z" fill="#174F75"/>
+    <path d="m820 337 111-65v128l-111 64V337Z" fill="#1D638D"/>
+    <!-- right outer wall -->
+    <path d="m931 272-111 65v127l111-64V272Z" fill="url(#solidSide)"/>
+  </g>
+
+  <!-- clean visible topology lines -->
+  <g stroke="#B7FFF2" stroke-opacity=".6" stroke-width="1.5" stroke-linejoin="round">
+    <path d="m630 226 73 42 58 35 59 34 111-65"/>
+    <path d="m703 268 0 128M761 303v127M820 337v127M931 272v128"/>
+    <path d="m630 354 73 42 58 34 59 34 111-64" stroke-opacity=".45"/>
+    <path d="m741 162 0 64M931 272l-111 65" stroke-dasharray="4 6" stroke-opacity=".32"/>
+  </g>
+
+  <!-- floating vertices and mesh accent -->
+  <g fill="#B9FFF2">
+    <circle cx="630" cy="226" r="4"/><circle cx="741" cy="162" r="4"/><circle cx="931" cy="272" r="4"/>
+    <circle cx="703" cy="268" r="4"/><circle cx="761" cy="303" r="4"/><circle cx="820" cy="337" r="4"/>
+  </g>
+  <g stroke="#57D7CF" stroke-opacity=".65" stroke-width="1.5">
+    <path d="m973 201 28-16 28 16-28 16-28-16Z"/>
+    <path d="m973 201v33l28 16v-33M1029 201v33l-28 16"/>
+    <path d="m984 207 17 10 17-10M984 227l17 10 17-10" stroke-opacity=".45"/>
+  </g>
+
+  <!-- title -->
+  <text x="76" y="508" fill="#F1F6FC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="38" font-weight="650" letter-spacing="-.8">CompositeCollider3D</text>
+  <text x="78" y="548" fill="#A9BDD4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="450" letter-spacing="2.2">BOOLEAN GEOMETRY  ·  STATIC OR DYNAMIC COLLISION</text>
+  <path d="M78 573h110" stroke="#59D5CD" stroke-width="3" stroke-linecap="round"/>
+  <text x="1048" y="570" text-anchor="end" fill="#7F9BB8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" letter-spacing="2.4">UNITY</text>
+</svg>
