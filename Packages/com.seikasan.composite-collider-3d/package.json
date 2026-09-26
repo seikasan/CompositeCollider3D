@@ -1,0 +1,15 @@
+{
+  "name": "com.seikasan.composite-collider-3d",
+  "version": "0.5.0",
+  "displayName": "Composite Collider 3D",
+  "description": "Combine closed 3D Collider meshes with Boolean operations and generate static concave or dynamic convex collision geometry.",
+  "unity": "6000.0",
+  "author": {
+    "name": "seika",
+    "url": "https://github.com/seikasan"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "com.unity.modules.physics": "1.0.0"
+  }
+}

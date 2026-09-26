@@ -7,6 +7,14 @@
       "dependencies": {},
       "hash": "acc1c7bc9ea34c33b830e40316fca52553878d29"
     },
+    "com.seikasan.composite-collider-3d": {
+      "version": "file:com.seikasan.composite-collider-3d",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.modules.physics": "1.0.0"
+      }
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.14",
       "depth": 0,
@@ -199,13 +207,6 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
-    },
-    "info.flandre.coacd": {
-      "version": "https://github.com/SarahWeiii/CoACD.git?path=/Packages/info.flandre.coacd#unity",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "9dd8431f3b2e7e4654e5a6284e3b8c36b4071c2f"
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",

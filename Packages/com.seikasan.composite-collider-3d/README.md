@@ -19,4 +19,18 @@ For Dynamic Convex, **Advanced (CoACD)** exposes Concavity Threshold, Sample Res
 
 The component uses ManifoldNET for Boolean operations and CoACD for dynamic convex decomposition. Mesh inputs must be readable. Dynamic sources should be children of the composite GameObject. Keep the composite object's scale at `(1,1,1)` for the intended collision shape. Invalid or empty results retain the previous generated Collider.
 
-**Save Generated Meshes...** creates one `.asset` containing the result mesh and any convex parts, then assigns those saved meshes to the generated Colliders. Unsaved generated meshes are scene objects. Changes to source shapes or relative transforms require another call to **Generate Geometry** and, if needed, another save. Native plugin support depends on the platform; the included ManifoldNET package supplies Windows x64 binaries.
+**Save Generated Meshes...** creates one `.asset` containing the result mesh and any convex parts, then assigns those saved meshes to the generated Colliders. Unsaved generated meshes are scene objects. Changes to source shapes or relative transforms require another call to **Generate Geometry** and, if needed, another save. The package includes ManifoldNET, CoACD, and their native Windows x86_64 binaries. Boolean operations and dynamic decomposition are currently supported only on Windows x86_64.
+
+## Installation
+
+This package targets Unity 6000.0 or later. After the repository is publicly available, install it from the Unity Package Manager using this Git URL:
+
+`https://github.com/seikasan/CompositeCollider3D.git?path=/Packages/com.seikasan.composite-collider-3d`
+
+The package ID is `com.seikasan.composite-collider-3d`.
+
+ManifoldNET and CoACD are bundled with the package, so there are no third-party Git package dependencies. Boolean generation and dynamic decomposition currently support Windows x86_64 only; other platforms are not supported by the included native binaries.
+
+## License
+
+Composite Collider 3D is distributed under the MIT License. See `LICENSE.md`. Third-party component licenses and attributions are in `Third Party Notices`.

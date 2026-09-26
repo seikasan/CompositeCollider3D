@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 5f6b04e9c20f6904bb9f9c53b99e2b04
+guid: 4d2f07fda43a4f4fa571f529711673d9
 labels:
 - NuGetForUnity
 PluginImporter:
@@ -14,7 +14,7 @@ PluginImporter:
   validateReferences: 1
   platformData:
     Any:
-      enabled: 0
+      enabled: 1
       settings: {}
     Editor:
       enabled: 0

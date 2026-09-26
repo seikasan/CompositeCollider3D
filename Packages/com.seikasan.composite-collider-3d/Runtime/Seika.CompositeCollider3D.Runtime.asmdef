@@ -1,0 +1,14 @@
+{
+  "name": "Seika.CompositeCollider3D.Runtime",
+  "rootNamespace": "CompositeCollider3D",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
