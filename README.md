@@ -2,6 +2,8 @@
 
 Combine closed 3D Collider shapes with Boolean operations and use the result as a static or dynamic collision shape.
 
+![CompositeCollider3D combines source solids into a concave collision shape](Documentation~/composite-collider-3d.svg)
+
 [日本語版 README](README.ja.md)
 
 ## Install
