@@ -34,7 +34,7 @@ Dynamic Convexは凹形状を複数の凸形状で近似します。Sceneビュ�
 
 **Generation Type**は**Manual**または**Automatic**を選べます。Automaticでは編集中に入力形状、演算、相対Transform、Collision Representationの変更を確認して再生成します。Play ModeとPlayerでは自動再生成しません。Inspectorからの生成はバックグラウンドで進み、新しい結果ができるまでは前回のColliderを使います。スクリプトから`GenerateGeometry()`を呼ぶ場合は同期実行です。
 
-Dynamic Convexの**Advanced (CoACD)**では、Concavity Threshold、Sample Resolution、MCTS Iterationsを調整できます。サンプル数や反復回数を減らすと生成時間が短くなる場合があります。Thresholdを上げるとパーツ数を減らせる一方、凹部の近似が粗くなる場合があります。**Generated Info**には最後の生成結果と処理時間が表示されます。
+Dynamic Convexの**Advanced (CoACD)** では、Concavity Threshold、Sample Resolution、MCTS Iterationsを調整できます。サンプル数や反復回数を減らすと生成時間が短くなる場合があります。Thresholdを上げるとパーツ数を減らせる一方、凹部の近似が粗くなる場合があります。**Generated Info**には最後の生成結果と処理時間が表示されます。
 
 CompositeCollider3Dを付けたGameObjectのScaleは`(1, 1, 1)`にし、入力Colliderはその子に置いてください。生成に成功すると、二重に衝突しないよう入力Colliderを無効にします。
 
