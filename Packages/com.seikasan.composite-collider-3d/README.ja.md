@@ -2,6 +2,8 @@
 
 閉じた3D ColliderをBoolean演算で結合し、静的または動的な衝突形状を作れます。
 
+![複数の立体を結合して凹形状のColliderを生成](Documentation~/composite-collider-3d.svg)
+
 [English README](README.md)
 
 ## 導入方法
