@@ -15,4 +15,4 @@ Project: https://github.com/dotnet/corefx
 
 CoACD
 
-The bundled lib_coacd.dll is built from https://github.com/SarahWeiii/CoACD at commit 9dd8431f3b2e7e4654e5a6284e3b8c36b4071c2f. That revision is distributed under the Apache License 2.0. See CoACD-Apache-2.0.txt.
+The bundled lib_coacd.dll, lib_coacd.dylib, and lib_coacd.so are built from https://github.com/SarahWeiii/CoACD at commit 9dd8431f3b2e7e4654e5a6284e3b8c36b4071c2f. That revision is distributed under the Apache License 2.0. See CoACD-Apache-2.0.txt.
